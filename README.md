@@ -28,7 +28,7 @@ Run the binary (sudo needed to satisfy permission requirements):
 | `if_down` | `iface` | Take the given network interface down |
 | `if_up` | `iface` | Bring the given network interface up |
 | `if_checker` | | Run AP / client-mode configuration script |
-| `add_wifi` | ssid, pass | Connect to WiFi with given SSID and password |
+| `add_wifi` | `ssid`, `pass` | Connect to WiFi with given SSID and password |
 
 ### Licensing
 
