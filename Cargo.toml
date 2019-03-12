@@ -7,4 +7,6 @@ edition = "2018"
 [dependencies]
 jsonrpc = "0.10.2"
 jsonrpc-http-server = "10.0"
-
+get_if_addrs = "0.5.3"
+serde = { version = "1.0.87", features = ["derive"] }
+failure = "0.1.5"
