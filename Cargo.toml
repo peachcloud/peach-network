@@ -1,0 +1,10 @@
+[package]
+name = "peach-network"
+version = "0.1.0"
+authors = ["Andrew Reid <gnomad@cryptolab.net>"]
+edition = "2018"
+
+[dependencies]
+jsonrpc = "0.10.2"
+jsonrpc-http-server = "10.0"
+
