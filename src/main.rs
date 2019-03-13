@@ -1,18 +1,27 @@
-extern crate get_if_addrs;
 extern crate failure;
+extern crate get_if_addrs;
 
-use std::str;
-use std::process::Command;
 use failure::Fail;
 use jsonrpc_http_server::jsonrpc_core::types::error::Error;
 use jsonrpc_http_server::jsonrpc_core::*;
 use jsonrpc_http_server::*;
 use serde::Deserialize;
+use std::fs::OpenOptions;
+use std::io::prelude::*;
+use std::process::{Command, Stdio};
+use std::str;
 
 // define the Iface struct for interface parameter
 #[derive(Debug, Deserialize)]
 struct Iface {
     iface: String,
+}
+
+// define the WiFi struct
+#[derive(Debug, Deserialize)]
+struct WiFi {
+    ssid: String,
+    pass: String,
 }
 
 #[derive(Debug, Fail)]
@@ -22,6 +31,21 @@ pub enum CallError {
 
     #[fail(display = "no ip found for given interface")]
     NoIpFound,
+
+    #[fail(display = "ifdown command failed for given interface")]
+    IfDownFailed,
+
+    #[fail(display = "ifup command failed for given interface")]
+    IfUpFailed,
+
+    #[fail(display = "failed to add config for given wifi creds")]
+    AddWifiFailed,
+
+    #[fail(display = "failed to generate wpa_passphrase")]
+    WpaPassGenFailed,
+
+    #[fail(display = "failed to open file for writing")]
+    FileOpenFailed,
 }
 
 impl From<CallError> for Error {
@@ -35,6 +59,31 @@ impl From<CallError> for Error {
             CallError::NoIpFound => Error {
                 code: ErrorCode::ServerError(-32000),
                 message: "no ip found for given interface".into(),
+                data: None,
+            },
+            CallError::IfDownFailed => Error {
+                code: ErrorCode::ServerError(-32001),
+                message: "ifdown command failed for given interface".into(),
+                data: None,
+            },
+            CallError::IfUpFailed => Error {
+                code: ErrorCode::ServerError(-32002),
+                message: "ifup command failed for given interface".into(),
+                data: None,
+            },
+            CallError::AddWifiFailed => Error {
+                code: ErrorCode::ServerError(-32003),
+                message: "failed to add config for given wifi creds".into(),
+                data: None,
+            },
+            CallError::WpaPassGenFailed => Error {
+                code: ErrorCode::InternalError,
+                message: "failed to generate wpa_passphrase".into(),
+                data: None,
+            },
+            CallError::FileOpenFailed => Error {
+                code: ErrorCode::InternalError,
+                message: "failed to open wpa_supplicant.conf for write".into(),
                 data: None,
             },
             err => Error {
@@ -77,8 +126,60 @@ fn get_ssid() -> Option<String> {
     }
 }
 
+// generate wpa configuration for given ssid and password
+fn gen_wifi_creds(wifi: WiFi) -> Result<String> {
+    // run wpa_passphrase command and capture stdout
+    let output = Command::new("wpa_passphrase")
+        .arg(&wifi.ssid)
+        .arg(&wifi.pass)
+        .stdout(Stdio::piped())
+        .output()
+        .unwrap_or_else(|e| panic!("Failed to execute wpa_passphrase command: {}", e));
+
+    let wpa_details = &*(output.stdout);
+
+    // append wpa_passphrase output to wpa_supplicant.conf if successful
+    if output.status.success() {
+        // open file in append mode
+        let file = OpenOptions::new()
+            .append(true)
+            .open("/etc/wpa_supplicant/wpa_supplicant.conf");
+
+        match file {
+            // if file exists and open succeeds, write wifi configuration
+            Ok(mut f) => {
+                f.write(wpa_details);
+                Ok("success".to_string())
+            }
+            // need to handle this better: create file if not found
+            //  and seed with 'ctrl_interface' and 'update_config' settings
+            Err(_) => Err(Error::from(CallError::FileOpenFailed)),
+        }
+    } else {
+        Err(Error::from(CallError::WpaPassGenFailed))
+    }
+}
+
 fn main() {
     let mut io = IoHandler::default();
+
+    io.add_method("add_wifi", move |params: Params| {
+        // parse parameters and match on result
+        let w: Result<WiFi> = params.parse();
+        match w {
+            // if result contains parameters, unwrap
+            Ok(_) => {
+                let w: WiFi = w.unwrap();
+                let add = gen_wifi_creds(w);
+                match add {
+                    Ok(_) => Ok(Value::String("success".to_string())),
+                    //Err(_) => Err(Error::from(CallError::AddWifiFailed))
+                    Err(e) => Err(e),
+                }
+            }
+            Err(e) => Err(Error::from(CallError::MissingParams { e })),
+        }
+    });
 
     io.add_method("get_ip", move |params: Params| {
         // parse parameters and match on result
@@ -102,6 +203,52 @@ fn main() {
         match ssid {
             Some(ssid) => Ok(Value::String(ssid)),
             None => Ok(Value::String("not currently connected".to_string())),
+        }
+    });
+
+    io.add_method("if_down", move |params: Params| {
+        let i: Result<Iface> = params.parse();
+        match i {
+            // if result contains parameters, unwrap
+            Ok(_) => {
+                let i: Iface = i.unwrap();
+                let iface = i.iface.to_string();
+                let if_down = Command::new("sudo")
+                    .arg("/sbin/ifdown")
+                    .arg(iface)
+                    .output()
+                    .unwrap_or_else(|e| panic!("Failed to execute ifdown command: {}", e));
+
+                if if_down.status.success() {
+                    Ok(Value::String("success".to_string()))
+                } else {
+                    Err(Error::from(CallError::IfDownFailed))
+                }
+            }
+            Err(e) => Err(Error::from(CallError::MissingParams { e })),
+        }
+    });
+
+    io.add_method("if_up", move |params: Params| {
+        let i: Result<Iface> = params.parse();
+        match i {
+            // if result contains parameters, unwrap
+            Ok(_) => {
+                let i: Iface = i.unwrap();
+                let iface = i.iface.to_string();
+                let if_up = Command::new("sudo")
+                    .arg("/sbin/ifup")
+                    .arg(iface)
+                    .output()
+                    .unwrap_or_else(|e| panic!("Failed to execute ifup command: {}", e));
+
+                if if_up.status.success() {
+                    Ok(Value::String("success".to_string()))
+                } else {
+                    Err(Error::from(CallError::IfUpFailed))
+                }
+            }
+            Err(e) => Err(Error::from(CallError::MissingParams { e })),
         }
     });
 

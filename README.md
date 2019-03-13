@@ -17,6 +17,8 @@ Run the binary (sudo needed to satisfy permission requirements):
 
 `sudo ./target/debug/peach-network`
 
+_Note: `iwgetid` needs to be included in PATH._
+
 -----
 
 ### API
