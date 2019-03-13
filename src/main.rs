@@ -46,6 +46,9 @@ pub enum CallError {
 
     #[fail(display = "failed to open file for writing")]
     FileOpenFailed,
+
+    #[fail(display = "failed to run interface_checker script")]
+    IfaceCheckerFailed,
 }
 
 impl From<CallError> for Error {
@@ -84,6 +87,11 @@ impl From<CallError> for Error {
             CallError::FileOpenFailed => Error {
                 code: ErrorCode::InternalError,
                 message: "failed to open wpa_supplicant.conf for write".into(),
+                data: None,
+            },
+            CallError::IfaceCheckerFailed => Error {
+                code: ErrorCode::InternalError,
+                message: "failed to run interface_checker script".into(),
                 data: None,
             },
             err => Error {
@@ -204,6 +212,19 @@ fn main() {
             Some(ssid) => Ok(Value::String(ssid)),
             None => Ok(Value::String("not currently connected".to_string())),
         }
+    });
+
+    io.add_method("if_checker", move |_| {
+        let iface_checker = Command::new("sudo")
+            .arg("/bin/bash")
+            .arg("/home/glyph/interface_checker.sh")
+            .output().unwrap_or_else(|e| {
+                panic!("Failed to run interface_checker script: {}", e)
+            });
+
+        if iface_checker.status.success() {
+            Ok(Value::String("success".to_string()))
+        } else { Err(Error::from(CallError::IfaceCheckerFailed)) }
     });
 
     io.add_method("if_down", move |params: Params| {
