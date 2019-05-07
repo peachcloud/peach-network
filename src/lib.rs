@@ -290,7 +290,8 @@ pub fn run() -> Result<(), Box<dyn StdError>> {
             .arg("/bin/bash")
             .arg("/home/glyph/interface_checker.sh")
             .output().unwrap_or_else(|e| {
-                panic!("Failed to run interface_checker script: {}", e)
+                error!("Failed to run interface_checker script: {}", e);
+                process::exit(1);
             });
 
         if iface_checker.status.success() {
