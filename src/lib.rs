@@ -120,11 +120,6 @@ impl From<CallError> for Error {
                 message: "failed to reconnect with wifi network".into(),
                 data: None,
             },
-            err => Error {
-                code: ErrorCode::InternalError,
-                message: "internal error".into(),
-                data: Some(format!("{:?}", err).into()),
-            },
         }
     }
 }
