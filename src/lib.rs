@@ -9,7 +9,6 @@ use std::str;
 use std::result::Result;
 use std::process;
 use std::process::Command;
-use std::error::Error as StdError;
 
 use failure::Fail;
 
@@ -18,6 +17,7 @@ use jsonrpc_http_server::jsonrpc_core::*;
 use jsonrpc_http_server::*;
 
 use serde::Deserialize;
+use serde_json::json;
 
 use regex::Regex;
 
@@ -41,6 +41,9 @@ pub enum CallError {
 
     #[fail(display = "no ip found for given interface")]
     NoIpFound,
+
+    #[fail(display = "no networks found for given interface")]
+    NoNetworksFound,
 
     #[fail(display = "failed to add config for given wifi creds")]
     AddWifiFailed,
@@ -70,11 +73,16 @@ impl From<CallError> for Error {
             CallError::MissingParams { e } => Error {
                 code: ErrorCode::ServerError(-32602),
                 message: "invalid params".into(),
-                data: Some(format!("{}", e.message).into()),
+                data: Some(e.message.to_string().into()),
             },
             CallError::NoIpFound => Error {
                 code: ErrorCode::ServerError(-32000),
                 message: "no ip found for given interface".into(),
+                data: None,
+            },
+            CallError::NoNetworksFound => Error {
+                code: ErrorCode::ServerError(-32000),
+                message: "no networks found for given interface".into(),
                 data: None,
             },
             CallError::AddWifiFailed => Error {
@@ -156,7 +164,7 @@ fn get_ssid() -> Option<String> {
 }
 
 // generate wpa configuration for given ssid and password
-fn gen_wifi_creds(wifi: WiFi) -> Result<(), Box<dyn StdError>> {
+fn gen_wifi_creds(wifi: WiFi) -> Result<(), Box<dyn std::error::Error>> {
     let mut wpa = wpactrl::WpaCtrl::new().open().unwrap_or_else(|err| {
         error!("Problem opening a connection to wpasupplicant: {}", err);
         process::exit(1);
@@ -178,7 +186,7 @@ fn gen_wifi_creds(wifi: WiFi) -> Result<(), Box<dyn StdError>> {
 }
 
 // disconnect and reconnect the wireless interface
-fn reconnect_wifi(iface: String) -> Result<(), Box<dyn StdError>> {
+fn reconnect_wifi(iface: String) -> Result<(), Box<dyn std::error::Error>> {
     let mut wpa = wpactrl::WpaCtrl::new().open().unwrap_or_else(|err| {
         error!("Problem opening a connection to wpasupplicant: {}", err);
         process::exit(1);
@@ -191,7 +199,7 @@ fn reconnect_wifi(iface: String) -> Result<(), Box<dyn StdError>> {
 }
 
 // reassociate the wireless interface
-fn reassociate_wifi(iface: String) -> Result<(), Box<dyn StdError>> {
+fn reassociate_wifi(iface: String) -> Result<(), Box<dyn std::error::Error>> {
     let mut wpa = wpactrl::WpaCtrl::new().open().unwrap_or_else(|err| {
         error!("Problem opening a connection to wpasupplicant: {}", err);
         process::exit(1);
@@ -202,13 +210,35 @@ fn reassociate_wifi(iface: String) -> Result<(), Box<dyn StdError>> {
     Ok(())
 }
 
+// list all wireless networks available to given interface
+fn list_networks(iface: String) -> Option<Vec<String>> {
+    let mut wpa = wpactrl::WpaCtrl::new().open().unwrap_or_else(|err| {
+        error!("Problem opening a connection to wpasupplicant: {}", err);
+        process::exit(1);
+    });
+    let select_iface = format!("INTERFACE {}", &iface);
+    // i have a sneaky suspicion this INTERFACE request is not doing anything
+    wpa.request(&select_iface).unwrap();
+    let networks = wpa.request("LIST_NETWORKS").unwrap();
+    let mut ssids = Vec::new();
+    // the first line in the list_networks response string is a header
+    // we iterate through the lines and add the second column (ssid)
+    for network in networks.lines() {
+        let v : Vec<&str> = network.split('\t').collect();
+        let len = v.len();
+        // this if statement excludes the header
+        if len > 1 {
+            ssids.push(v[1].to_string());
+        }
+    }
+    Some(ssids)
+}
 /*
  * Further functions to be implemented:
- *  - list_networks
  *  - remove_network
  */
 
-pub fn run() -> Result<(), Box<dyn StdError>> {
+pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     info!("Starting up.");
 
     info!("Creating JSON-RPC I/O handler.");
@@ -255,6 +285,25 @@ pub fn run() -> Result<(), Box<dyn StdError>> {
                 match reconnect_wifi(i.iface) {
                     Ok(_) => Ok(Value::String("success".to_string())),
                     Err(_) => Err(Error::from(CallError::ReconnectFailed))
+                }
+            }
+            Err(e) => Err(Error::from(CallError::MissingParams { e })),
+        }
+    });
+
+    io.add_method("list_networks", move |params: Params| {
+        let i: Result<Iface, Error> = params.parse();
+        match i {
+            // if result contains parameters, unwrap
+            Ok(_) => {
+                let i: Iface = i.unwrap();
+                let list = list_networks(i.iface);
+                match list {
+                    Some(list) => {
+                        let json_ssids = json!(list);
+                        Ok(Value::String(json_ssids.to_string()))
+                    },
+                    None => Err(Error::from(CallError::NoNetworksFound))
                 }
             }
             Err(e) => Err(Error::from(CallError::MissingParams { e })),

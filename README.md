@@ -13,6 +13,7 @@ _Note: This module is a work-in-progress._
 | `get_ip` | `iface` | Return IP for given network interface |
 | `get_ssid` | | Return SSID of currently-connected network |
 | `if_checker` | | Run AP / client-mode configuration script |
+| `list_networks` | `iface` | List available networks for given network interface |
 | `add_wifi` | `ssid`, `pass` | Connect to WiFi with given SSID and password |
 | `reconnect_wifi` | `iface` | Disconnect and reconnect given network interface |
 | `reassociate_wifi` | `iface` | Reassociate with current AP for given network interface |
