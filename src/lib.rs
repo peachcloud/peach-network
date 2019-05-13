@@ -12,9 +12,11 @@ use std::process::Command;
 
 use failure::Fail;
 
-use jsonrpc_http_server::jsonrpc_core::types::error::Error;
-use jsonrpc_http_server::jsonrpc_core::*;
+use jsonrpc_core::*;
+use jsonrpc_core::types::error::Error;
 use jsonrpc_http_server::*;
+#[allow(unused_imports)]
+use jsonrpc_test as test;
 
 use serde::Deserialize;
 use serde_json::json;
@@ -354,4 +356,23 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     server.wait();
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // test to ensure correct success response
+    #[test]
+    fn rpc_success() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_success_response", |_| {
+                Ok(Value::String("success".into()))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(rpc.request("rpc_success_response", &()), r#""success""#);
+    }
 }
