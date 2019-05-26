@@ -3,19 +3,14 @@ extern crate log;
 extern crate get_if_addrs;
 extern crate wpactrl;
 extern crate regex;
-//extern crate failure;
 
-use std::io;
-use std::str;
-use std::error;
-use std::result::Result;
-use std::process::Command;
+use std::{process::Command, result::Result, error, str, io};
 
 use snafu::{Snafu, ResultExt};
 
-use jsonrpc_core::*;
-use jsonrpc_core::types::error::Error;
+use jsonrpc_core::{*, types::error::Error};
 use jsonrpc_http_server::*;
+
 #[allow(unused_imports)]
 use jsonrpc_test as test;
 
@@ -275,17 +270,10 @@ pub fn run() -> Result<(), BoxError> {
     let mut io = IoHandler::default();
 
     io.add_method("add_wifi", move |params: Params| {
-        // parse parameters and match on result
         let w: Result<WiFi, Error> = params.parse()?;
-//        match w {
-//            // if result contains parameters, unwrap
-//            Ok(_) => {
-                let w: WiFi = w?;
-                let add = gen_wifi_creds(w)?;
-                Ok(Value::String("success".to_string()))
-//            }
-//            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
-//        }
+        let w: WiFi = w?;
+        let add = gen_wifi_creds(w)?;
+        Ok(Value::String("success".to_string()))
     });
 
     io.add_method("reassociate_wifi", move |params: Params| {
