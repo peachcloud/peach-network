@@ -51,15 +51,11 @@ pub enum NetworkError {
     },
 
     #[snafu(display("Request to wpasupplicant via wpactrl failed"))]
-    WpaCtrlRequest {
-        source: failure::Error,
-    },
-    
+    WpaCtrlRequest { source: BoxError },
+
     #[snafu(display("Failed to open control interface for wpasupplicant"))]
-    WpaCtrlOpen {
-        source: failure::Error,
-    },
-    
+    WpaCtrlOpen { source: BoxError },
+
     #[snafu(display("No networks found for given interface: {}", iface))]
     NoNetworksFound {
         iface: String,
@@ -174,9 +170,17 @@ fn get_ip(iface: String) -> Result<Option<String>, NetworkError> {
 
 // retrieve ssid of connected network
 fn get_ssid() -> Result<Option<String>, NetworkError> {
-    let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
-    wpa.request("INTERFACE wlan0").context(WpaCtrlRequest)?;
-    let mut status = wpa.request("STATUS").context(WpaCtrlRequest)?;
+    let mut wpa = wpactrl::WpaCtrl::new()
+        .open()
+        .map_err(|e| e.into())
+        .context(WpaCtrlOpen)?;
+    wpa.request("INTERFACE wlan0")
+        .map_err(|e| e.into())
+        .context(WpaCtrlRequest)?;
+    let mut status = wpa
+        .request("STATUS")
+        .map_err(|e| e.into())
+        .context(WpaCtrlRequest)?;
     let re = Regex::new(r"\nssid=(.*)\n").context(RegexFailed)?;
     let caps = re.captures(&status);
     let ssid = match caps {
@@ -195,39 +199,73 @@ fn get_ssid() -> Result<Option<String>, NetworkError> {
 
 // generate wpa configuration for given ssid and password
 fn gen_wifi_creds(wifi: WiFi) -> Result<(), NetworkError> {
-    let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
-    wpa.request("INTERFACE wlan0").context(WpaCtrlRequest)?;
-    let mut net_id = wpa.request("ADD_NETWORK").context(WpaCtrlRequest)?;
+    let mut wpa = wpactrl::WpaCtrl::new()
+        .open()
+        .map_err(|e| e.into())
+        .context(WpaCtrlOpen)?;
+    wpa.request("INTERFACE wlan0")
+        .map_err(|e| e.into())
+        .context(WpaCtrlRequest)?;
+    let mut net_id = wpa
+        .request("ADD_NETWORK")
+        .map_err(|e| e.into())
+        .context(WpaCtrlRequest)?;
     let len = net_id.len();
     // remove newline character
     net_id.truncate(len - 1);
     let ssid_cmd = format!("SET_NETWORK {} ssid \"{}\"", net_id, &wifi.ssid);
-    wpa.request(&ssid_cmd).context(WpaCtrlRequest)?;
+    wpa.request(&ssid_cmd)
+        .map_err(|e| e.into())
+        .context(WpaCtrlRequest)?;
     let psk_cmd = format!("SET_NETWORK {} psk \"{}\"", net_id, &wifi.pass);
-    wpa.request(&psk_cmd).context(WpaCtrlRequest)?;
+    wpa.request(&psk_cmd)
+        .map_err(|e| e.into())
+        .context(WpaCtrlRequest)?;
     let en_cmd = format!("ENABLE_NETWORK {}", net_id);
-    wpa.request(&en_cmd).context(WpaCtrlRequest)?;
-    wpa.request("SET update_config 1").context(WpaCtrlRequest)?;
-    wpa.request("SAVE_CONFIG").context(WpaCtrlRequest)?;
+    wpa.request(&en_cmd)
+        .map_err(|e| e.into())
+        .context(WpaCtrlRequest)?;
+    wpa.request("SET update_config 1")
+        .map_err(|e| e.into())
+        .context(WpaCtrlRequest)?;
+    wpa.request("SAVE_CONFIG")
+        .map_err(|e| e.into())
+        .context(WpaCtrlRequest)?;
     Ok(())
 }
 
 // disconnect and reconnect the wireless interface
 fn reconnect_wifi(iface: String) -> Result<(), NetworkError> {
-    let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
+    let mut wpa = wpactrl::WpaCtrl::new()
+        .open()
+        .map_err(|e| e.into())
+        .context(WpaCtrlOpen)?;
     let select_iface = format!("INTERFACE {}", &iface);
-    wpa.request(&select_iface).context(WpaCtrlRequest)?;
-    wpa.request("DISCONNECT").context(WpaCtrlRequest)?;
-    wpa.request("RECONNECT").context(WpaCtrlRequest)?;
+    wpa.request(&select_iface)
+        .map_err(|e| e.into())
+        .context(WpaCtrlRequest)?;
+    wpa.request("DISCONNECT")
+        .map_err(|e| e.into())
+        .context(WpaCtrlRequest)?;
+    wpa.request("RECONNECT")
+        .map_err(|e| e.into())
+        .context(WpaCtrlRequest)?;
     Ok(())
 }
 
 // reassociate the wireless interface
 fn reassociate_wifi(iface: String) -> Result<(), NetworkError> {
-    let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
+    let mut wpa = wpactrl::WpaCtrl::new()
+        .open()
+        .map_err(|e| e.into())
+        .context(WpaCtrlOpen)?;
     let select_iface = format!("INTERFACE {}", &iface);
-    wpa.request(&select_iface).context(WpaCtrlRequest)?;
-    wpa.request("REASSOCIATE").context(WpaCtrlRequest)?;
+    wpa.request(&select_iface)
+        .map_err(|e| e.into())
+        .context(WpaCtrlRequest)?;
+    wpa.request("REASSOCIATE")
+        .map_err(|e| e.into())
+        .context(WpaCtrlRequest)?;
     Ok(())
 }
 
@@ -243,11 +281,19 @@ fn run_iface_script() -> Result<(), NetworkError> {
 
 // list all wireless networks available to given interface
 fn list_networks(iface: String) -> Result<Option<Vec<String>>, NetworkError> {
-    let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
+    let mut wpa = wpactrl::WpaCtrl::new()
+        .open()
+        .map_err(|e| e.into())
+        .context(WpaCtrlOpen)?;
     let select_iface = format!("INTERFACE {}", &iface);
     // i have a sneaky suspicion this INTERFACE request is not doing anything
-    wpa.request(&select_iface).context(WpaCtrlRequest)?;
-    let networks = wpa.request("LIST_NETWORKS").context(WpaCtrlRequest)?;
+    wpa.request(&select_iface)
+        .map_err(|e| e.into())
+        .context(WpaCtrlRequest)?;
+    let networks = wpa
+        .request("LIST_NETWORKS")
+        .map_err(|e| e.into())
+        .context(WpaCtrlRequest)?;
     let mut ssids = Vec::new();
     for network in networks.lines() {
         let v : Vec<&str> = network.split('\t').collect();
