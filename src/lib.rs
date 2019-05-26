@@ -56,7 +56,7 @@ pub enum NetworkError {
     },
     
     #[snafu(display("Failed to open control interface for wpasupplicant"))]
-    OpenWpaCtrl {
+    WpaCtrlOpen {
         source: failure::Error,
     },
     
@@ -105,7 +105,7 @@ impl From<NetworkError> for Error {
                 message: "WPA supplicant request failed".into(),
                 data: None,
             },
-            NetworkError::OpenWpaCtrl { source } => Error {
+            NetworkError::WpaCtrlOpen { source } => Error {
                 code: ErrorCode::ServerError(-32000),
                 message: "Failed to open control interface for wpasupplicant".into(),
                 data: None,
@@ -174,9 +174,9 @@ fn get_ip(iface: String) -> Result<Option<String>, NetworkError> {
 
 // retrieve ssid of connected network
 fn get_ssid() -> Result<Option<String>, NetworkError> {
-    let mut wpa = wpactrl::WpaCtrl::new().open().context(OpenWpaCtrl)?;
+    let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
     wpa.request("INTERFACE wlan0").context(WpaCtrlRequest)?;
-    let status = wpa.request("STATUS").context(WpaCtrlRequest)?;
+    let mut status = wpa.request("STATUS").context(WpaCtrlRequest)?;
     let re = Regex::new(r"\nssid=(.*)\n").context(RegexFailed)?;
     let caps = re.captures(&status);
     let ssid = match caps {
@@ -195,7 +195,7 @@ fn get_ssid() -> Result<Option<String>, NetworkError> {
 
 // generate wpa configuration for given ssid and password
 fn gen_wifi_creds(wifi: WiFi) -> Result<(), NetworkError> {
-    let mut wpa = wpactrl::WpaCtrl::new().open().context(OpenWpaCtrl)?;
+    let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
     wpa.request("INTERFACE wlan0").context(WpaCtrlRequest)?;
     let mut net_id = wpa.request("ADD_NETWORK").context(WpaCtrlRequest)?;
     let len = net_id.len();
@@ -214,17 +214,17 @@ fn gen_wifi_creds(wifi: WiFi) -> Result<(), NetworkError> {
 
 // disconnect and reconnect the wireless interface
 fn reconnect_wifi(iface: String) -> Result<(), NetworkError> {
-    let mut wpa = wpactrl::WpaCtrl::new().open().context(OpenWpaCtrl)?;
+    let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
     let select_iface = format!("INTERFACE {}", &iface);
-    wpa.request(&select_iface).context(OpenWpaCtrl)?;
-    wpa.request("DISCONNECT").context(OpenWpaCtrl)?;
-    wpa.request("RECONNECT").context(OpenWpaCtrl)?;
+    wpa.request(&select_iface).context(WpaCtrlRequest)?;
+    wpa.request("DISCONNECT").context(WpaCtrlRequest)?;
+    wpa.request("RECONNECT").context(WpaCtrlRequest)?;
     Ok(())
 }
 
 // reassociate the wireless interface
 fn reassociate_wifi(iface: String) -> Result<(), NetworkError> {
-    let mut wpa = wpactrl::WpaCtrl::new().open().context(OpenWpaCtrl)?;
+    let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
     let select_iface = format!("INTERFACE {}", &iface);
     wpa.request(&select_iface).context(WpaCtrlRequest)?;
     wpa.request("REASSOCIATE").context(WpaCtrlRequest)?;
@@ -243,7 +243,7 @@ fn run_iface_script() -> Result<(), NetworkError> {
 
 // list all wireless networks available to given interface
 fn list_networks(iface: String) -> Result<Option<Vec<String>>, NetworkError> {
-    let mut wpa = wpactrl::WpaCtrl::new().open().context(OpenWpaCtrl)?;
+    let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
     let select_iface = format!("INTERFACE {}", &iface);
     // i have a sneaky suspicion this INTERFACE request is not doing anything
     wpa.request(&select_iface).context(WpaCtrlRequest)?;
