@@ -36,7 +36,10 @@ struct WiFi {
 
 #[derive(Debug, Snafu)]
 pub enum NetworkError {
-    #[snafu(display("missing expected parameters"))]
+    #[snafu(display("Failed to add network for {}", ssid))]
+    AddWifi { ssid: String },
+
+    #[snafu(display("Missing expected parameters: {}", e))]
     MissingParams { e: Error },
 
     #[snafu(display("No IP found for given interface: {}", iface))]
@@ -60,23 +63,14 @@ pub enum NetworkError {
     #[snafu(display("No networks found for given interface: {}", iface))]
     NoNetworksFound { iface: String },
 
-    #[snafu(display("failed to add config for given wifi creds"))]
-    AddWifiFailed,
-
-    #[snafu(display("failed to generate wpa_passphrase"))]
-    WpaPassGenFailed,
-
-    #[snafu(display("failed to open file for writing"))]
-    FileOpenFailed,
-
     #[snafu(display("Failed to run interface_checker script: {}", source))]
     RunApClientScript { source: io::Error },
 
-    #[snafu(display("failed to reassociate with wifi connection"))]
-    ReassociateFailed,
+    #[snafu(display("Failed to reassociate with WiFi for {}", iface))]
+    ReassociateFailed { iface: String },
 
-    #[snafu(display("failed to reconnect with wifi connection"))]
-    ReconnectFailed,
+    #[snafu(display("Failed to reconnect with WiFi for {}", iface))]
+    ReconnectFailed { iface: String },
 
     #[snafu(display("Regex command failed"))]
     RegexFailed { source: regex::Error },
@@ -86,24 +80,32 @@ impl From<NetworkError> for Error {
     fn from(err: NetworkError) -> Self {
         match &err {
             NetworkError::MissingParams { e } => e.clone(),
+            NetworkError::AddWifi { ssid } => Error {
+                code: ErrorCode::ServerError(-32000),
+                message: format!("Failed to add network for {}", ssid),
+                data: None,
+            },
             NetworkError::GetIp { iface, source } => Error {
                 code: ErrorCode::ServerError(-32000),
-                message: format!("Failed to retrieve IP address for {}", iface),
+                message: format!("Failed to retrieve IP address for {}: {}", iface, source),
                 data: None,
             },
             NetworkError::WpaCtrlRequest { source } => Error {
                 code: ErrorCode::ServerError(-32000),
-                message: "WPA supplicant request failed".into(),
+                message: format!("WPA supplicant request failed: {}", source),
                 data: None,
             },
             NetworkError::WpaCtrlOpen { source } => Error {
                 code: ErrorCode::ServerError(-32000),
-                message: "Failed to open control interface for wpasupplicant".into(),
+                message: format!(
+                    "Failed to open control interface for wpasupplicant: {}",
+                    source
+                ),
                 data: None,
             },
             NetworkError::RegexFailed { source } => Error {
                 code: ErrorCode::ServerError(-32000),
-                message: "Regex command error".into(),
+                message: format!("Regex command error: {}", source),
                 data: None,
             },
             NetworkError::NoIpFound { iface } => Error {
@@ -116,34 +118,19 @@ impl From<NetworkError> for Error {
                 message: format!("No networks found for {}", iface),
                 data: None,
             },
-            NetworkError::AddWifiFailed => Error {
-                code: ErrorCode::ServerError(-32003),
-                message: "failed to add config for given wifi creds".into(),
-                data: None,
-            },
-            NetworkError::WpaPassGenFailed => Error {
-                code: ErrorCode::InternalError,
-                message: "failed to generate wpa_passphrase".into(),
-                data: None,
-            },
-            NetworkError::FileOpenFailed => Error {
-                code: ErrorCode::InternalError,
-                message: "failed to open wpa_supplicant.conf for write".into(),
-                data: None,
-            },
             NetworkError::RunApClientScript { source } => Error {
                 code: ErrorCode::InternalError,
-                message: "Failed to run interface_checker script".into(),
+                message: format!("Failed to run interface_checker script: {}", source),
                 data: None,
             },
-            NetworkError::ReassociateFailed => Error {
+            NetworkError::ReassociateFailed { iface } => Error {
                 code: ErrorCode::InternalError,
-                message: "failed to reassociate with wifi network".into(),
+                message: format!("Failed to reassociate with WiFi network for {}", iface),
                 data: None,
             },
-            NetworkError::ReconnectFailed => Error {
+            NetworkError::ReconnectFailed { iface } => Error {
                 code: ErrorCode::InternalError,
-                message: "failed to reconnect with wifi network".into(),
+                message: format!("Failed to reconnect with WiFi network for {}", iface),
                 data: None,
             },
         }
@@ -163,9 +150,10 @@ fn get_ip(iface: &str) -> Result<Option<String>, NetworkError> {
 }
 
 // retrieve ssid of connected network
-fn get_ssid() -> Result<Option<String>, NetworkError> {
+fn get_ssid(iface: &str) -> Result<Option<String>, NetworkError> {
     let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
-    wpa.request("INTERFACE wlan0").context(WpaCtrlRequest)?;
+    let select_iface = format!("INTERFACE {}", &iface);
+    wpa.request(&select_iface).context(WpaCtrlRequest)?;
     let status = wpa.request("STATUS").context(WpaCtrlRequest)?;
     let re = Regex::new(r"\nssid=(.*)\n").context(RegexFailed)?;
     let caps = re.captures(&status);
@@ -183,8 +171,8 @@ fn get_ssid() -> Result<Option<String>, NetworkError> {
     Ok(ssid)
 }
 
-// generate wpa configuration for given ssid and password
-fn gen_wifi_creds(wifi: WiFi) -> Result<(), NetworkError> {
+// add network and save configuration for given ssid and password
+fn add_wifi(wifi: &WiFi) -> Result<(), NetworkError> {
     let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
     wpa.request("INTERFACE wlan0").context(WpaCtrlRequest)?;
     let mut net_id = wpa.request("ADD_NETWORK").context(WpaCtrlRequest)?;
@@ -203,7 +191,7 @@ fn gen_wifi_creds(wifi: WiFi) -> Result<(), NetworkError> {
 }
 
 // disconnect and reconnect the wireless interface
-fn reconnect_wifi(iface: String) -> Result<(), NetworkError> {
+fn reconnect_wifi(iface: &str) -> Result<(), NetworkError> {
     let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
     let select_iface = format!("INTERFACE {}", &iface);
     wpa.request(&select_iface).context(WpaCtrlRequest)?;
@@ -213,7 +201,7 @@ fn reconnect_wifi(iface: String) -> Result<(), NetworkError> {
 }
 
 // reassociate the wireless interface
-fn reassociate_wifi(iface: String) -> Result<(), NetworkError> {
+fn reassociate_wifi(iface: &str) -> Result<(), NetworkError> {
     let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
     let select_iface = format!("INTERFACE {}", &iface);
     wpa.request(&select_iface).context(WpaCtrlRequest)?;
@@ -231,11 +219,10 @@ fn run_iface_script() -> Result<(), NetworkError> {
     Ok(())
 }
 
-// list all wireless networks available to given interface
+// list all wireless networks saved to the wpasupplicant config
 fn list_networks(iface: &str) -> Result<Option<Vec<String>>, NetworkError> {
     let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
     let select_iface = format!("INTERFACE {}", &iface);
-    // i have a sneaky suspicion this INTERFACE request is not doing anything
     wpa.request(&select_iface).context(WpaCtrlRequest)?;
     let networks = wpa.request("LIST_NETWORKS").context(WpaCtrlRequest)?;
     let mut ssids = Vec::new();
@@ -251,6 +238,7 @@ fn list_networks(iface: &str) -> Result<Option<Vec<String>>, NetworkError> {
 /*
  * Further functions to be implemented:
  *  - remove_network
+ *  - scan_networks
  */
 
 pub fn run() -> Result<(), BoxError> {
@@ -260,10 +248,17 @@ pub fn run() -> Result<(), BoxError> {
     let mut io = IoHandler::default();
 
     io.add_method("add_wifi", move |params: Params| {
-        let w: Result<WiFi, Error> = params.parse()?;
-        let w: WiFi = w?;
-        gen_wifi_creds(w)?;
-        Ok(Value::String("success".to_string()))
+        let w: Result<WiFi, Error> = params.parse();
+        match w {
+            Ok(_) => {
+                let w: WiFi = w?;
+                match add_wifi(&w) {
+                    Ok(_) => Ok(Value::String("success".to_string())),
+                    Err(_) => Err(Error::from(NetworkError::AddWifi { ssid: w.ssid })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
     });
 
     io.add_method("reassociate_wifi", move |params: Params| {
@@ -272,9 +267,10 @@ pub fn run() -> Result<(), BoxError> {
             // if result contains parameters, unwrap
             Ok(_) => {
                 let i: Iface = i?;
-                match reassociate_wifi(i.iface) {
+                let iface = i.iface.to_string();
+                match reassociate_wifi(&iface) {
                     Ok(_) => Ok(Value::String("success".to_string())),
-                    Err(_) => Err(Error::from(NetworkError::ReassociateFailed)),
+                    Err(_) => Err(Error::from(NetworkError::ReassociateFailed { iface })),
                 }
             }
             Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
@@ -287,9 +283,10 @@ pub fn run() -> Result<(), BoxError> {
             // if result contains parameters, unwrap
             Ok(_) => {
                 let i: Iface = i?;
-                match reconnect_wifi(i.iface) {
+                let iface = i.iface.to_string();
+                match reconnect_wifi(&iface) {
                     Ok(_) => Ok(Value::String("success".to_string())),
-                    Err(_) => Err(Error::from(NetworkError::ReconnectFailed)),
+                    Err(_) => Err(Error::from(NetworkError::ReconnectFailed { iface })),
                 }
             }
             Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
@@ -333,11 +330,19 @@ pub fn run() -> Result<(), BoxError> {
         }
     });
 
-    io.add_method("get_ssid", move |_| {
-        let ssid = get_ssid()?;
-        match ssid {
-            Some(ssid) => Ok(Value::String(ssid)),
-            None => Ok(Value::String("not currently connected".to_string())),
+    io.add_method("get_ssid", move |params: Params| {
+        let i: Result<Iface, Error> = params.parse();
+        match i {
+            Ok(_) => {
+                let i: Iface = i?;
+                let iface = i.iface.to_string();
+                let ssid = get_ssid(&iface)?;
+                match ssid {
+                    Some(ssid) => Ok(Value::String(ssid)),
+                    None => Ok(Value::String("not currently connected".to_string())),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
         }
     });
 
