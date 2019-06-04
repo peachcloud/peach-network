@@ -10,13 +10,11 @@ use snafu::ResultExt;
 
 use crate::error::*;
 
-// define the Iface struct for interface parameter
 #[derive(Debug, Deserialize)]
 pub struct Iface {
     pub iface: String,
 }
 
-// define the WiFi struct
 #[derive(Debug, Deserialize)]
 pub struct WiFi {
     pub ssid: String,

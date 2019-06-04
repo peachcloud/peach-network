@@ -37,32 +37,7 @@ pub fn run() -> Result<(), BoxError> {
         }
     });
 
-    io.add_method(
-        "reassociate_wifi",
-        move |_| match network::reassociate_wifi() {
-            Ok(_) => Ok(Value::String("success".to_string())),
-            Err(_) => Err(Error::from(NetworkError::ReassociateFailed)),
-        },
-    );
-
-    io.add_method("reconnect_wifi", move |_| match network::reconnect_wifi() {
-        Ok(_) => Ok(Value::String("success".to_string())),
-        Err(_) => Err(Error::from(NetworkError::ReconnectFailed)),
-    });
-
-    io.add_method("list_networks", move |_| {
-        let list = network::list_networks()?;
-        match list {
-            Some(list) => {
-                let json_ssids = json!(list);
-                Ok(Value::String(json_ssids.to_string()))
-            }
-            None => Err(Error::from(NetworkError::ListSavedNetworks)),
-        }
-    });
-
     io.add_method("get_ip", move |params: Params| {
-        // parse parameters and match on result
         let i: Result<Iface, Error> = params.parse();
         match i {
             Ok(_) => {
@@ -92,6 +67,30 @@ pub fn run() -> Result<(), BoxError> {
         Ok(Value::String("success".to_string()))
     });
 
+    io.add_method("list_networks", move |_| {
+        let list = network::list_networks()?;
+        match list {
+            Some(list) => {
+                let json_ssids = json!(list);
+                Ok(Value::String(json_ssids.to_string()))
+            }
+            None => Err(Error::from(NetworkError::ListSavedNetworks)),
+        }
+    });
+
+    io.add_method(
+        "reassociate_wifi",
+        move |_| match network::reassociate_wifi() {
+            Ok(_) => Ok(Value::String("success".to_string())),
+            Err(_) => Err(Error::from(NetworkError::ReassociateFailed)),
+        },
+    );
+
+    io.add_method("reconnect_wifi", move |_| match network::reconnect_wifi() {
+        Ok(_) => Ok(Value::String("success".to_string())),
+        Err(_) => Err(Error::from(NetworkError::ReconnectFailed)),
+    });
+
     info!("Creating JSON-RPC server.");
     let server = ServerBuilder::new(io)
         .cors(DomainsValidation::AllowOnly(vec![
@@ -109,7 +108,6 @@ pub fn run() -> Result<(), BoxError> {
 mod tests {
     use super::*;
 
-    // test to ensure correct success response
     #[test]
     fn rpc_success() {
         let rpc = {
