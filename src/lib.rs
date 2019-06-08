@@ -15,7 +15,7 @@ use jsonrpc_test as test;
 use serde_json::json;
 
 use crate::error::{BoxError, NetworkError};
-use crate::network::{Iface, WiFi}; //*
+use crate::network::{Iface, WiFi};
 
 pub fn run() -> Result<(), BoxError> {
     info!("Starting up.");
@@ -53,11 +53,19 @@ pub fn run() -> Result<(), BoxError> {
         }
     });
 
-    io.add_method("get_ssid", move |_| {
-        let ssid = network::get_ssid()?;
-        match ssid {
-            Some(ssid) => Ok(Value::String(ssid)),
-            None => Ok(Value::String("not currently connected".to_string())),
+    io.add_method("get_ssid", move |params: Params| {
+        let i: Result<Iface, Error> = params.parse();
+        match i {
+            Ok(_) => {
+                let i: Iface = i?;
+                let iface = i.iface.to_string();
+                let ip = network::get_ssid(&iface)?;
+                match ip {
+                    Some(ip) => Ok(Value::String(ip)),
+                    None => Err(Error::from(NetworkError::GetSsid { iface })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
         }
     });
 

@@ -34,8 +34,12 @@ pub fn get_ip(iface: &str) -> Result<Option<String>, NetworkError> {
 }
 
 // retrieve ssid of connected network
-pub fn get_ssid() -> Result<Option<String>, NetworkError> {
-    let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
+pub fn get_ssid(iface: &str) -> Result<Option<String>, NetworkError> {
+    let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
+    let mut wpa = wpactrl::WpaCtrl::new()
+        .ctrl_path(wpa_path)
+        .open()
+        .context(WpaCtrlOpen)?;
     let status = wpa.request("STATUS").context(WpaCtrlRequest)?;
     let re = Regex::new(r"\nssid=(.*)\n").context(RegexFailed)?;
     let caps = re.captures(&status);

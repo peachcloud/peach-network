@@ -14,6 +14,9 @@ pub enum NetworkError {
     #[snafu(display("Could not access IP address for interface: {}", iface))]
     GetIp { iface: String, source: io::Error },
 
+    #[snafu(display("Could not find SSID for interface: {}", iface))]
+    GetSsid { iface: String },
+
     #[snafu(display("No saved networks found for default interface"))]
     ListSavedNetworks,
 
@@ -59,6 +62,14 @@ impl From<NetworkError> for Error {
             NetworkError::GetIp { iface, source } => Error {
                 code: ErrorCode::ServerError(-32000),
                 message: format!("Failed to retrieve IP address for {}: {}", iface, source),
+                data: None,
+            },
+            NetworkError::GetSsid { iface } => Error {
+                code: ErrorCode::ServerError(-32000),
+                message: format!(
+                    "Failed to retrieve SSID for {}. Interface may not be connected.",
+                    iface
+                ),
                 data: None,
             },
             NetworkError::ListSavedNetworks => Error {
