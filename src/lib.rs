@@ -86,17 +86,34 @@ pub fn run() -> Result<(), BoxError> {
         }
     });
 
-    io.add_method(
-        "reassociate_wifi",
-        move |_| match network::reassociate_wifi() {
-            Ok(_) => Ok(Value::String("success".to_string())),
-            Err(_) => Err(Error::from(NetworkError::ReassociateFailed)),
-        },
-    );
+    io.add_method("reassociate_wifi", move |params: Params| {
+        let i: Result<Iface, Error> = params.parse();
+        match i {
+            Ok(_) => {
+                let i: Iface = i?;
+                let iface = i.iface.to_string();
+                match network::reassociate_wifi(&iface) {
+                    Ok(_) => Ok(Value::String("success".to_string())),
+                    Err(_) => Err(Error::from(NetworkError::ReassociateFailed)),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
 
-    io.add_method("reconnect_wifi", move |_| match network::reconnect_wifi() {
-        Ok(_) => Ok(Value::String("success".to_string())),
-        Err(_) => Err(Error::from(NetworkError::ReconnectFailed)),
+    io.add_method("reconnect_wifi", move |params: Params| {
+        let i: Result<Iface, Error> = params.parse();
+        match i {
+            Ok(_) => {
+                let i: Iface = i?;
+                let iface = i.iface.to_string();
+                match network::reconnect_wifi(&iface) {
+                    Ok(_) => Ok(Value::String("success".to_string())),
+                    Err(_) => Err(Error::from(NetworkError::ReconnectFailed)),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
     });
 
     info!("Creating JSON-RPC server.");

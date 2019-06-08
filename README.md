@@ -17,8 +17,8 @@ _Note: This module is a work-in-progress._
 | `if_checker` | | Run AP / client-mode configuration script |
 | `list_networks` | | List available networks for default network interface |
 | `add_wifi` | `ssid`, `pass` | Connect to WiFi with given SSID and password |
-| `reconnect_wifi` | | Disconnect and reconnect default network interface |
-| `reassociate_wifi` | | Reassociate with current AP for default network interface |
+| `reconnect_wifi` | `iface` | Disconnect and reconnect given interface |
+| `reassociate_wifi` | `iface` | Reassociate with current AP for given interface |
 
 ### Setup
 
@@ -46,6 +46,18 @@ With microservice running, open a second terminal window and use `curl` to call 
 Server responds with:
 
 `{"jsonrpc":"2.0","result":"192.168.1.21","id":1}`
+
+**Retrieve SSID of connected access point for wlan1**
+
+`curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "get_ssid", "params" : {"iface": "wlan1" }, "id":1 }' 127.0.0.1:5000`
+
+Server response when interface is connected:
+
+`{"jsonrpc":"2.0","result":"Home","id":1}`
+
+Server response when interface is not connected:
+
+`{"jsonrpc":"2.0","error":{"code":-32000,"message":"Failed to retrieve SSID for wlan0. Interface may not be connected."},"id":1}`
 
 ### Licensing
 

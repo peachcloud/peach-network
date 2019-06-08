@@ -76,16 +76,24 @@ pub fn add_wifi(wifi: &WiFi) -> Result<(), NetworkError> {
 }
 
 // disconnect and reconnect the wireless interface
-pub fn reconnect_wifi() -> Result<(), NetworkError> {
-    let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
+pub fn reconnect_wifi(iface: &str) -> Result<(), NetworkError> {
+    let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
+    let mut wpa = wpactrl::WpaCtrl::new()
+        .ctrl_path(wpa_path)
+        .open()
+        .context(WpaCtrlOpen)?;
     wpa.request("DISCONNECT").context(WpaCtrlRequest)?;
     wpa.request("RECONNECT").context(WpaCtrlRequest)?;
     Ok(())
 }
 
 // reassociate the wireless interface
-pub fn reassociate_wifi() -> Result<(), NetworkError> {
-    let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
+pub fn reassociate_wifi(iface: &str) -> Result<(), NetworkError> {
+    let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
+    let mut wpa = wpactrl::WpaCtrl::new()
+        .ctrl_path(wpa_path)
+        .open()
+        .context(WpaCtrlOpen)?;
     wpa.request("REASSOCIATE").context(WpaCtrlRequest)?;
     Ok(())
 }
