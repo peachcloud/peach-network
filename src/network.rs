@@ -122,8 +122,33 @@ pub fn list_networks() -> Result<Option<Vec<String>>, NetworkError> {
     }
     Ok(Some(ssids))
 }
+
+// list all wireless networks in range of the given interface
+pub fn scan_networks(iface: &str) -> Result<Option<Vec<String>>, NetworkError> {
+    let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
+    let mut wpa = wpactrl::WpaCtrl::new()
+        .ctrl_path(wpa_path)
+        .open()
+        .context(WpaCtrlOpen)?;
+    wpa.request("SCAN").context(WpaCtrlRequest)?;
+    let networks = wpa.request("SCAN_RESULTS").context(WpaCtrlRequest)?;
+    let mut ssids = Vec::new();
+    for network in networks.lines() {
+        let v: Vec<&str> = network.split('\t').collect();
+        let len = v.len();
+        if len > 1 {
+            ssids.push(v[4].to_string());
+        }
+    }
+
+    if ssids.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(ssids))
+    }
+}
+
 /*
  * Further functions to be implemented:
  *  - remove_network
- *  - scan_networks
  */

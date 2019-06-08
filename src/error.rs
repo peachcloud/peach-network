@@ -20,17 +20,20 @@ pub enum NetworkError {
     #[snafu(display("No saved networks found for default interface"))]
     ListSavedNetworks,
 
+    #[snafu(display("No networks found in range of interface: {}", iface))]
+    ListScanResults { iface: String },
+
     #[snafu(display("Missing expected parameters: {}", e))]
     MissingParams { e: Error },
 
     #[snafu(display("No IP found for interface: {}", iface))]
     NoIpFound { iface: String },
 
-    #[snafu(display("Failed to reassociate with WiFi network"))]
-    ReassociateFailed,
+    #[snafu(display("Failed to reassociate with WiFi network for interface: {}", iface))]
+    ReassociateFailed { iface: String },
 
-    #[snafu(display("Failed to reconnect with WiFi network"))]
-    ReconnectFailed,
+    #[snafu(display("Failed to reconnect with WiFi network for interface: {}", iface))]
+    ReconnectFailed { iface: String },
 
     #[snafu(display("Regex command failed"))]
     RegexFailed { source: regex::Error },
@@ -77,20 +80,25 @@ impl From<NetworkError> for Error {
                 message: "No saved networks found".to_string(),
                 data: None,
             },
+            NetworkError::ListScanResults { iface } => Error {
+                code: ErrorCode::ServerError(-32000),
+                message: format!("No networks found in range of interface {}", iface),
+                data: None,
+            },
             NetworkError::MissingParams { e } => e.clone(),
             NetworkError::NoIpFound { iface } => Error {
                 code: ErrorCode::ServerError(-32000),
                 message: format!("No IP address found for {}", iface),
                 data: None,
             },
-            NetworkError::ReassociateFailed => Error {
+            NetworkError::ReassociateFailed { iface } => Error {
                 code: ErrorCode::InternalError,
-                message: "Failed to reassociate with WiFi network".to_string(),
+                message: format!("Failed to reassociate with WiFi network for: {}", iface),
                 data: None,
             },
-            NetworkError::ReconnectFailed => Error {
+            NetworkError::ReconnectFailed { iface } => Error {
                 code: ErrorCode::InternalError,
-                message: "Failed to reconnect with WiFi network".to_string(),
+                message: format!("Failed to reconnect with WiFi network for: {}", iface),
                 data: None,
             },
             NetworkError::RegexFailed { source } => Error {

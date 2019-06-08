@@ -86,6 +86,25 @@ pub fn run() -> Result<(), BoxError> {
         }
     });
 
+    io.add_method("scan_networks", move |params: Params| {
+        let i: Result<Iface, Error> = params.parse();
+        match i {
+            Ok(_) => {
+                let i: Iface = i?;
+                let iface = i.iface.to_string();
+                let list = network::scan_networks(&iface)?;
+                match list {
+                    Some(list) => {
+                        let json_ssids = json!(list);
+                        Ok(Value::String(json_ssids.to_string()))
+                    }
+                    None => Err(Error::from(NetworkError::ListScanResults { iface })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
+
     io.add_method("reassociate_wifi", move |params: Params| {
         let i: Result<Iface, Error> = params.parse();
         match i {
@@ -94,7 +113,7 @@ pub fn run() -> Result<(), BoxError> {
                 let iface = i.iface.to_string();
                 match network::reassociate_wifi(&iface) {
                     Ok(_) => Ok(Value::String("success".to_string())),
-                    Err(_) => Err(Error::from(NetworkError::ReassociateFailed)),
+                    Err(_) => Err(Error::from(NetworkError::ReassociateFailed { iface })),
                 }
             }
             Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
@@ -109,7 +128,7 @@ pub fn run() -> Result<(), BoxError> {
                 let iface = i.iface.to_string();
                 match network::reconnect_wifi(&iface) {
                     Ok(_) => Ok(Value::String("success".to_string())),
-                    Err(_) => Err(Error::from(NetworkError::ReconnectFailed)),
+                    Err(_) => Err(Error::from(NetworkError::ReconnectFailed { iface })),
                 }
             }
             Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
