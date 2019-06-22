@@ -152,6 +152,8 @@ pub fn run() -> Result<(), BoxError> {
 mod tests {
     use super::*;
 
+    use jsonrpc_core::ErrorCode;
+
     #[test]
     fn rpc_success() {
         let rpc = {
@@ -163,5 +165,30 @@ mod tests {
         };
 
         assert_eq!(rpc.request("rpc_success_response", &()), r#""success""#);
+    }
+
+    // test to ensure correct parse error response for rpc parameters
+    #[test]
+    fn rpc_parse_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_parse_error", |_| {
+                let e = Error {
+                    code: ErrorCode::ParseError,
+                    message: String::from("Parse error"),
+                    data: None,
+                };
+                Err(Error::from(NetworkError::MissingParams { e }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_parse_error", &()),
+            r#"{
+  "code": -32700,
+  "message": "Parse error"
+}"#
+        );
     }
 }
