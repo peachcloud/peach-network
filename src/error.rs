@@ -30,13 +30,13 @@ pub enum NetworkError {
     NoIpFound { iface: String },
 
     #[snafu(display("Failed to reassociate with WiFi network for interface: {}", iface))]
-    ReassociateFailed { iface: String },
+    Reassociate { iface: String },
 
     #[snafu(display("Failed to reconnect with WiFi network for interface: {}", iface))]
-    ReconnectFailed { iface: String },
+    Reconnect { iface: String },
 
     #[snafu(display("Regex command failed"))]
-    RegexFailed { source: regex::Error },
+    Regex { source: regex::Error },
 
     #[snafu(display("Failed to run interface_checker script: {}", source))]
     RunApClientScript { source: io::Error },
@@ -70,7 +70,7 @@ impl From<NetworkError> for Error {
             NetworkError::GetSsid { iface } => Error {
                 code: ErrorCode::ServerError(-32000),
                 message: format!(
-                    "Failed to retrieve SSID for {}. Interface may not be connected.",
+                    "Failed to retrieve SSID for {}. Interface may not be connected",
                     iface
                 ),
                 data: None,
@@ -91,17 +91,17 @@ impl From<NetworkError> for Error {
                 message: format!("No IP address found for {}", iface),
                 data: None,
             },
-            NetworkError::ReassociateFailed { iface } => Error {
+            NetworkError::Reassociate { iface } => Error {
                 code: ErrorCode::InternalError,
                 message: format!("Failed to reassociate with WiFi network for: {}", iface),
                 data: None,
             },
-            NetworkError::ReconnectFailed { iface } => Error {
+            NetworkError::Reconnect { iface } => Error {
                 code: ErrorCode::InternalError,
                 message: format!("Failed to reconnect with WiFi network for: {}", iface),
                 data: None,
             },
-            NetworkError::RegexFailed { source } => Error {
+            NetworkError::Regex { source } => Error {
                 code: ErrorCode::ServerError(-32000),
                 message: format!("Regex command error: {}", source),
                 data: None,

@@ -113,7 +113,7 @@ pub fn run() -> Result<(), BoxError> {
                 let iface = i.iface.to_string();
                 match network::reassociate_wifi(&iface) {
                     Ok(_) => Ok(Value::String("success".to_string())),
-                    Err(_) => Err(Error::from(NetworkError::ReassociateFailed { iface })),
+                    Err(_) => Err(Error::from(NetworkError::Reassociate { iface })),
                 }
             }
             Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
@@ -128,7 +128,7 @@ pub fn run() -> Result<(), BoxError> {
                 let iface = i.iface.to_string();
                 match network::reconnect_wifi(&iface) {
                     Ok(_) => Ok(Value::String("success".to_string())),
-                    Err(_) => Err(Error::from(NetworkError::ReconnectFailed { iface })),
+                    Err(_) => Err(Error::from(NetworkError::Reconnect { iface })),
                 }
             }
             Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
@@ -153,6 +153,8 @@ mod tests {
     use super::*;
 
     use jsonrpc_core::ErrorCode;
+    use std::io::Error as IoError;
+    use std::io::ErrorKind;
 
     #[test]
     fn rpc_success() {
@@ -191,4 +193,114 @@ mod tests {
 }"#
         );
     }
+
+    // test to ensure correct addwifi error response
+    #[test]
+    fn rpc_addwifi_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_addwifi_error", |_| {
+                Err(Error::from(NetworkError::AddWifi {
+                    ssid: "Home".to_string(),
+                }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_addwifi_error", &()),
+            r#"{
+  "code": -32000,
+  "message": "Failed to add network for Home"
+}"#
+        );
+    }
+
+    // test to ensure correct getip error response
+    #[test]
+    fn rpc_getip_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_getip_error", |_| {
+                Err(Error::from(NetworkError::GetIp {
+                    iface: "wlan7".to_string(),
+                    source: IoError::new(ErrorKind::AddrNotAvailable, "oh no!"),
+                }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_getip_error", &()),
+            r#"{
+  "code": -32000,
+  "message": "Failed to retrieve IP address for wlan7: oh no!"
+}"#
+        );
+    }
+
+    // test to ensure correct getssid error response
+    #[test]
+    fn rpc_getssid_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_getssid_error", |_| {
+                Err(Error::from(NetworkError::GetSsid {
+                    iface: "wlan0".to_string(),
+                }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_getssid_error", &()),
+            r#"{
+  "code": -32000,
+  "message": "Failed to retrieve SSID for wlan0. Interface may not be connected"
+}"#
+        );
+    }
+
+    // test to ensure correct listsavednetworks error response
+    #[test]
+    fn rpc_listsavednetworks_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_listsavednetworks_error", |_| {
+                Err(Error::from(NetworkError::ListSavedNetworks))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_listsavednetworks_error", &()),
+            r#"{
+  "code": -32000,
+  "message": "No saved networks found"
+}"#
+        );
+    }
+
+    // test to ensure correct listscanresults error response
+    #[test]
+    fn rpc_listscanresults_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_listscanresults_error", |_| {
+                Err(Error::from(NetworkError::ListScanResults {
+                    iface: "wlan0".to_string(),
+                }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_listscanresults_error", &()),
+            r#"{
+  "code": -32000,
+  "message": "No networks found in range of interface wlan0"
+}"#
+        );
+    }
+
 }

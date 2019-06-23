@@ -41,7 +41,7 @@ pub fn get_ssid(iface: &str) -> Result<Option<String>, NetworkError> {
         .open()
         .context(WpaCtrlOpen)?;
     let status = wpa.request("STATUS").context(WpaCtrlRequest)?;
-    let re = Regex::new(r"\nssid=(.*)\n").context(RegexFailed)?;
+    let re = Regex::new(r"\nssid=(.*)\n").context(Regex)?;
     let caps = re.captures(&status);
     let ssid = match caps {
         Some(caps) => {
