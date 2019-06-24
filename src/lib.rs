@@ -233,7 +233,7 @@ mod tests {
         assert_eq!(
             rpc.request("rpc_getip_error", &()),
             r#"{
-  "code": -32000,
+  "code": -32001,
   "message": "Failed to retrieve IP address for wlan7: oh no!"
 }"#
         );
@@ -255,7 +255,7 @@ mod tests {
         assert_eq!(
             rpc.request("rpc_getssid_error", &()),
             r#"{
-  "code": -32000,
+  "code": -32002,
   "message": "Failed to retrieve SSID for wlan0. Interface may not be connected"
 }"#
         );
@@ -275,7 +275,7 @@ mod tests {
         assert_eq!(
             rpc.request("rpc_listsavednetworks_error", &()),
             r#"{
-  "code": -32000,
+  "code": -32003,
   "message": "No saved networks found"
 }"#
         );
@@ -297,10 +297,188 @@ mod tests {
         assert_eq!(
             rpc.request("rpc_listscanresults_error", &()),
             r#"{
-  "code": -32000,
-  "message": "No networks found in range of interface wlan0"
+  "code": -32004,
+  "message": "No networks found in range of wlan0"
 }"#
         );
     }
 
+    // test to ensure correct missingparams error response
+    #[test]
+    fn rpc_missingparams_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_missingparams_error", |_| {
+                let e = Error {
+                    code: ErrorCode::InvalidParams,
+                    message: String::from(
+                        "Invalid params: invalid type: null, expected struct Iface.",
+                    ),
+                    data: None,
+                };
+                Err(Error::from(NetworkError::MissingParams { e }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_missingparams_error", &()),
+            r#"{
+  "code": -32602,
+  "message": "Invalid params: invalid type: null, expected struct Iface."
+}"#
+        );
+    }
+
+    // test to ensure correct noipfound error response
+    #[test]
+    fn rpc_noipfound_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_noipfound_error", |_| {
+                Err(Error::from(NetworkError::NoIpFound {
+                    iface: "wlan0".to_string(),
+                }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_noipfound_error", &()),
+            r#"{
+  "code": -32005,
+  "message": "No IP address found for wlan0"
+}"#
+        );
+    }
+
+    // test to ensure correct reassociate error response
+    #[test]
+    fn rpc_reassociate_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_reassociate_error", |_| {
+                Err(Error::from(NetworkError::Reassociate {
+                    iface: "wlan0".to_string(),
+                }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_reassociate_error", &()),
+            r#"{
+  "code": -32006,
+  "message": "Failed to reassociate with WiFi network for wlan0"
+}"#
+        );
+    }
+
+    // test to ensure correct reconnect error response
+    #[test]
+    fn rpc_reconnect_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_reconnect_error", |_| {
+                Err(Error::from(NetworkError::Reconnect {
+                    iface: "wlan0".to_string(),
+                }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_reconnect_error", &()),
+            r#"{
+  "code": -32007,
+  "message": "Failed to reconnect with WiFi network for wlan0"
+}"#
+        );
+    }
+
+    // test to ensure correct regex error response
+    #[test]
+    fn rpc_regex_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_regex_error", |_| {
+                let source = regex::Error::Syntax("oh no!".to_string());
+                Err(Error::from(NetworkError::Regex { source }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_regex_error", &()),
+            r#"{
+  "code": -32008,
+  "message": "Regex command error: oh no!"
+}"#
+        );
+    }
+
+    // test to ensure correct runapclientscript error response
+    #[test]
+    fn rpc_rrunapclientscript_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_runapclientscript_error", |_| {
+                let source = IoError::new(ErrorKind::PermissionDenied, "oh no!");
+                Err(Error::from(NetworkError::RunApClientScript { source }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_runapclientscript_error", &()),
+            r#"{
+  "code": -32009,
+  "message": "Failed to run interface_checker script: oh no!"
+}"#
+        );
+    }
+
+    // test to ensure correct wpactrlopen error response
+    #[test]
+    fn rpc_wpactrlopen_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_wpactrlopen_error", |_| {
+                let fail_err = failure::err_msg("Permission denied (os error 13)").compat();
+                let source = Box::new(fail_err);
+                Err(Error::from(NetworkError::WpaCtrlOpen { source }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_wpactrlopen_error", &()),
+            r#"{
+  "code": -32010,
+  "message": "Failed to open control interface for wpasupplicant: Permission denied (os error 13)"
+}"#
+        );
+    }
+
+    // test to ensure correct wpactrlrequest error response
+    #[test]
+    fn rpc_wpactrlrequest_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_wpactrlrequest_error", |_| {
+                let fail_err = failure::err_msg("oh no!").compat();
+                let source = Box::new(fail_err);
+                Err(Error::from(NetworkError::WpaCtrlRequest { source }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_wpactrlrequest_error", &()),
+            r#"{
+  "code": -32011,
+  "message": "WPA supplicant request failed: oh no!"
+}"#
+        );
+    }
 }
