@@ -144,7 +144,11 @@ pub fn run() -> Result<(), BoxError> {
         .cors(DomainsValidation::AllowOnly(vec![
             AccessControlAllowOrigin::Null,
         ]))
-        .start_http(&http_server.parse().unwrap())
+        .start_http(
+            &http_server
+                .parse()
+                .expect("Invalid HTTP address and port combination"),
+        )
         .expect("Unable to start RPC server");
 
     server.wait();
