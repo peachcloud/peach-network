@@ -6,6 +6,7 @@ extern crate wpactrl;
 mod error;
 mod network;
 
+use std::env;
 use std::result::Result;
 
 use jsonrpc_core::{types::error::Error, *};
@@ -135,12 +136,15 @@ pub fn run() -> Result<(), BoxError> {
         }
     });
 
-    info!("Creating JSON-RPC server.");
+    let http_server =
+        env::var("PEACH_NETWORK_SERVER").unwrap_or_else(|_| "127.0.0.1:5110".to_string());
+
+    info!("Starting JSON-RPC server on {}.", http_server);
     let server = ServerBuilder::new(io)
         .cors(DomainsValidation::AllowOnly(vec![
             AccessControlAllowOrigin::Null,
         ]))
-        .start_http(&"127.0.0.1:5000".parse().unwrap())
+        .start_http(&http_server.parse().unwrap())
         .expect("Unable to start RPC server");
 
     server.wait();

@@ -21,6 +21,20 @@ _Note: This module is a work-in-progress._
 | `reconnect_wifi` | `iface` | Disconnect and reconnect given interface |
 | `reassociate_wifi` | `iface` | Reassociate with current AP for given interface |
 
+### Environment
+
+The JSON-RPC HTTP server address and port can be configured with the `PEACH_NETWORK_SERVER` environment variable:
+
+`export PEACH_NETWORK_SERVER=127.0.0.1:5000`
+
+When not set, the value defaults to `127.0.0.1:5110`.
+
+Logging is made available with `env_logger`:
+
+`export RUST_LOG=info`
+
+Other logging levels include `debug`, `warn` and `error`.
+
 ### Setup
 
 Clone this repo:
