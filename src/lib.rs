@@ -87,6 +87,8 @@ pub fn run() -> Result<(), BoxError> {
         }
     });
 
+    io.add_method("ping", |_: Params| Ok(Value::String("success".to_string())));
+
     io.add_method("scan_networks", move |params: Params| {
         let i: Result<Iface, Error> = params.parse();
         match i {
