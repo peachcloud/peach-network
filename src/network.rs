@@ -21,6 +21,24 @@ pub struct WiFi {
     pub pass: String,
 }
 
+// add network and save configuration for given ssid and password
+pub fn add_wifi(wifi: &WiFi) -> Result<(), NetworkError> {
+    let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
+    let mut net_id = wpa.request("ADD_NETWORK").context(WpaCtrlRequest)?;
+    let len = net_id.len();
+    // remove newline character
+    net_id.truncate(len - 1);
+    let ssid_cmd = format!("SET_NETWORK {} ssid \"{}\"", net_id, &wifi.ssid);
+    wpa.request(&ssid_cmd).context(WpaCtrlRequest)?;
+    let psk_cmd = format!("SET_NETWORK {} psk \"{}\"", net_id, &wifi.pass);
+    wpa.request(&psk_cmd).context(WpaCtrlRequest)?;
+    let en_cmd = format!("ENABLE_NETWORK {}", net_id);
+    wpa.request(&en_cmd).context(WpaCtrlRequest)?;
+    wpa.request("SET update_config 1").context(WpaCtrlRequest)?;
+    wpa.request("SAVE_CONFIG").context(WpaCtrlRequest)?;
+    Ok(())
+}
+
 // retrieve ip address for specified interface
 pub fn get_ip(iface: &str) -> Result<Option<String>, NetworkError> {
     let net_if: String = iface.to_string();
@@ -31,6 +49,30 @@ pub fn get_ip(iface: &str) -> Result<Option<String>, NetworkError> {
         .map(|iface| iface.ip().to_string());
 
     Ok(ip)
+}
+
+// retrieve average signal strength for specified interface
+pub fn get_rssi(iface: &str) -> Result<Option<String>, NetworkError> {
+    let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
+    let mut wpa = wpactrl::WpaCtrl::new()
+        .ctrl_path(wpa_path)
+        .open()
+        .context(WpaCtrlOpen)?;
+    let status = wpa.request("SIGNAL_POLL").context(WpaCtrlRequest)?;
+    let re = Regex::new(r"\nAVG_RSSI=(.*)\n").context(Regex)?;
+    let caps = re.captures(&status);
+    let rssi = match caps {
+        Some(caps) => {
+            let sig_strength = &mut caps[0].to_string();
+            let mut sig = sig_strength.split_off(10);
+            let len = sig.len();
+            sig.truncate(len - 1);
+            Some(sig)
+        }
+        None => None,
+    };
+
+    Ok(rssi)
 }
 
 // retrieve ssid of connected network
@@ -57,21 +99,29 @@ pub fn get_ssid(iface: &str) -> Result<Option<String>, NetworkError> {
     Ok(ssid)
 }
 
-// add network and save configuration for given ssid and password
-pub fn add_wifi(wifi: &WiFi) -> Result<(), NetworkError> {
+// list all wireless networks saved to the wpasupplicant config
+pub fn list_networks() -> Result<Option<Vec<String>>, NetworkError> {
     let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
-    let mut net_id = wpa.request("ADD_NETWORK").context(WpaCtrlRequest)?;
-    let len = net_id.len();
-    // remove newline character
-    net_id.truncate(len - 1);
-    let ssid_cmd = format!("SET_NETWORK {} ssid \"{}\"", net_id, &wifi.ssid);
-    wpa.request(&ssid_cmd).context(WpaCtrlRequest)?;
-    let psk_cmd = format!("SET_NETWORK {} psk \"{}\"", net_id, &wifi.pass);
-    wpa.request(&psk_cmd).context(WpaCtrlRequest)?;
-    let en_cmd = format!("ENABLE_NETWORK {}", net_id);
-    wpa.request(&en_cmd).context(WpaCtrlRequest)?;
-    wpa.request("SET update_config 1").context(WpaCtrlRequest)?;
-    wpa.request("SAVE_CONFIG").context(WpaCtrlRequest)?;
+    let networks = wpa.request("LIST_NETWORKS").context(WpaCtrlRequest)?;
+    let mut ssids = Vec::new();
+    for network in networks.lines() {
+        let v: Vec<&str> = network.split('\t').collect();
+        let len = v.len();
+        if len > 1 {
+            ssids.push(v[1].to_string());
+        }
+    }
+    Ok(Some(ssids))
+}
+
+// reassociate the wireless interface
+pub fn reassociate_wifi(iface: &str) -> Result<(), NetworkError> {
+    let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
+    let mut wpa = wpactrl::WpaCtrl::new()
+        .ctrl_path(wpa_path)
+        .open()
+        .context(WpaCtrlOpen)?;
+    wpa.request("REASSOCIATE").context(WpaCtrlRequest)?;
     Ok(())
 }
 
@@ -87,17 +137,6 @@ pub fn reconnect_wifi(iface: &str) -> Result<(), NetworkError> {
     Ok(())
 }
 
-// reassociate the wireless interface
-pub fn reassociate_wifi(iface: &str) -> Result<(), NetworkError> {
-    let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
-    let mut wpa = wpactrl::WpaCtrl::new()
-        .ctrl_path(wpa_path)
-        .open()
-        .context(WpaCtrlOpen)?;
-    wpa.request("REASSOCIATE").context(WpaCtrlRequest)?;
-    Ok(())
-}
-
 // run the interface checker script for ap-client mode switching
 pub fn run_iface_script() -> Result<(), NetworkError> {
     Command::new("sudo")
@@ -106,21 +145,6 @@ pub fn run_iface_script() -> Result<(), NetworkError> {
         .output()
         .context(RunApClientScript)?;
     Ok(())
-}
-
-// list all wireless networks saved to the wpasupplicant config
-pub fn list_networks() -> Result<Option<Vec<String>>, NetworkError> {
-    let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
-    let networks = wpa.request("LIST_NETWORKS").context(WpaCtrlRequest)?;
-    let mut ssids = Vec::new();
-    for network in networks.lines() {
-        let v: Vec<&str> = network.split('\t').collect();
-        let len = v.len();
-        if len > 1 {
-            ssids.push(v[1].to_string());
-        }
-    }
-    Ok(Some(ssids))
 }
 
 // list all wireless networks in range of the given interface

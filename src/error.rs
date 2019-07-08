@@ -14,6 +14,9 @@ pub enum NetworkError {
     #[snafu(display("Could not access IP address for interface: {}", iface))]
     GetIp { iface: String, source: io::Error },
 
+    #[snafu(display("Could not find RSSI for interface: {}", iface))]
+    GetRssi { iface: String },
+
     #[snafu(display("Could not find SSID for interface: {}", iface))]
     GetSsid { iface: String },
 
@@ -67,8 +70,16 @@ impl From<NetworkError> for Error {
                 message: format!("Failed to retrieve IP address for {}: {}", iface, source),
                 data: None,
             },
-            NetworkError::GetSsid { iface } => Error {
+            NetworkError::GetRssi { iface } => Error {
                 code: ErrorCode::ServerError(-32002),
+                message: format!(
+                    "Failed to retrieve RSSI for {}. Interface may not be connected",
+                    iface
+                ),
+                data: None,
+            },
+            NetworkError::GetSsid { iface } => Error {
+                code: ErrorCode::ServerError(-32003),
                 message: format!(
                     "Failed to retrieve SSID for {}. Interface may not be connected",
                     iface
@@ -76,43 +87,43 @@ impl From<NetworkError> for Error {
                 data: None,
             },
             NetworkError::ListSavedNetworks => Error {
-                code: ErrorCode::ServerError(-32003),
+                code: ErrorCode::ServerError(-32004),
                 message: "No saved networks found".to_string(),
                 data: None,
             },
             NetworkError::ListScanResults { iface } => Error {
-                code: ErrorCode::ServerError(-32004),
+                code: ErrorCode::ServerError(-32005),
                 message: format!("No networks found in range of {}", iface),
                 data: None,
             },
             NetworkError::MissingParams { e } => e.clone(),
             NetworkError::NoIpFound { iface } => Error {
-                code: ErrorCode::ServerError(-32005),
+                code: ErrorCode::ServerError(-32006),
                 message: format!("No IP address found for {}", iface),
                 data: None,
             },
             NetworkError::Reassociate { iface } => Error {
-                code: ErrorCode::ServerError(-32006),
+                code: ErrorCode::ServerError(-32007),
                 message: format!("Failed to reassociate with WiFi network for {}", iface),
                 data: None,
             },
             NetworkError::Reconnect { iface } => Error {
-                code: ErrorCode::ServerError(-32007),
+                code: ErrorCode::ServerError(-32008),
                 message: format!("Failed to reconnect with WiFi network for {}", iface),
                 data: None,
             },
             NetworkError::Regex { source } => Error {
-                code: ErrorCode::ServerError(-32008),
+                code: ErrorCode::ServerError(-32009),
                 message: format!("Regex command error: {}", source),
                 data: None,
             },
             NetworkError::RunApClientScript { source } => Error {
-                code: ErrorCode::ServerError(-32009),
+                code: ErrorCode::ServerError(-32010),
                 message: format!("Failed to run interface_checker script: {}", source),
                 data: None,
             },
             NetworkError::WpaCtrlOpen { source } => Error {
-                code: ErrorCode::ServerError(-32010),
+                code: ErrorCode::ServerError(-32011),
                 message: format!(
                     "Failed to open control interface for wpasupplicant: {}",
                     source
@@ -120,7 +131,7 @@ impl From<NetworkError> for Error {
                 data: None,
             },
             NetworkError::WpaCtrlRequest { source } => Error {
-                code: ErrorCode::ServerError(-32011),
+                code: ErrorCode::ServerError(-32012),
                 message: format!("WPA supplicant request failed: {}", source),
                 data: None,
             },

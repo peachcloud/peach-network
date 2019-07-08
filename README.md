@@ -14,6 +14,7 @@ _Note: This module is a work-in-progress._
 | --- | --- | --- |
 | `add_wifi` | `ssid`, `pass` | Connect to WiFi with given SSID and password |
 | `get_ip` | `iface` | Return IP of given network interface |
+| `get_rssi` | `iface` | Return average signal strength for given interface |
 | `get_ssid` | `iface` | Return SSID of currently-connected network for given interface |
 | `if_checker` | | Run AP / client-mode configuration script |
 | `list_networks` | | List all networks saved in wpasupplicant config |
