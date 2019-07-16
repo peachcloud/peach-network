@@ -1,6 +1,8 @@
 use std::{error, io, str};
 
 use jsonrpc_core::{types::error::Error, ErrorCode};
+use probes::ProbeError;
+use serde_json::error::Error as SerdeError;
 use snafu::Snafu;
 
 pub type BoxError = Box<dyn error::Error>;
@@ -20,6 +22,9 @@ pub enum NetworkError {
     #[snafu(display("Could not find SSID for interface: {}", iface))]
     GetSsid { iface: String },
 
+    #[snafu(display("Could not find network traffic for interface: {}", iface))]
+    GetTraffic { iface: String },
+
     #[snafu(display("No saved networks found for default interface"))]
     ListSavedNetworks,
 
@@ -32,6 +37,13 @@ pub enum NetworkError {
     #[snafu(display("No IP found for interface: {}", iface))]
     NoIpFound { iface: String },
 
+    #[snafu(display(
+        "Failed to retrieve network traffic measurement for {}: {}",
+        iface,
+        source
+    ))]
+    ReadTraffic { iface: String, source: ProbeError },
+
     #[snafu(display("Failed to reassociate with WiFi network for interface: {}", iface))]
     Reassociate { iface: String },
 
@@ -43,6 +55,9 @@ pub enum NetworkError {
 
     #[snafu(display("Failed to run interface_checker script: {}", source))]
     RunApClientScript { source: io::Error },
+
+    #[snafu(display("JSON serialization failed"))]
+    SerdeSerialize { source: SerdeError },
 
     #[snafu(display("Failed to open control interface for wpasupplicant"))]
     WpaCtrlOpen {
@@ -86,44 +101,65 @@ impl From<NetworkError> for Error {
                 ),
                 data: None,
             },
-            NetworkError::ListSavedNetworks => Error {
+            NetworkError::GetTraffic { iface } => Error {
                 code: ErrorCode::ServerError(-32004),
+                message: format!(
+                    "No network traffic statistics found for {}. Interface may not exist",
+                    iface
+                ),
+                data: None,
+            },
+            NetworkError::ListSavedNetworks => Error {
+                code: ErrorCode::ServerError(-32005),
                 message: "No saved networks found".to_string(),
                 data: None,
             },
             NetworkError::ListScanResults { iface } => Error {
-                code: ErrorCode::ServerError(-32005),
+                code: ErrorCode::ServerError(-32006),
                 message: format!("No networks found in range of {}", iface),
                 data: None,
             },
             NetworkError::MissingParams { e } => e.clone(),
             NetworkError::NoIpFound { iface } => Error {
-                code: ErrorCode::ServerError(-32006),
+                code: ErrorCode::ServerError(-32007),
                 message: format!("No IP address found for {}", iface),
                 data: None,
             },
+            NetworkError::ReadTraffic { iface, source } => Error {
+                code: ErrorCode::ServerError(-32015),
+                message: format!(
+                    "Failed to retrieve network statistics measurement for {}: {}",
+                    iface, source
+                ),
+                data: None,
+            },
             NetworkError::Reassociate { iface } => Error {
-                code: ErrorCode::ServerError(-32007),
+                code: ErrorCode::ServerError(-32008),
                 message: format!("Failed to reassociate with WiFi network for {}", iface),
                 data: None,
             },
             NetworkError::Reconnect { iface } => Error {
-                code: ErrorCode::ServerError(-32008),
+                code: ErrorCode::ServerError(-32009),
                 message: format!("Failed to reconnect with WiFi network for {}", iface),
                 data: None,
             },
             NetworkError::Regex { source } => Error {
-                code: ErrorCode::ServerError(-32009),
+                code: ErrorCode::ServerError(-32010),
                 message: format!("Regex command error: {}", source),
                 data: None,
             },
             NetworkError::RunApClientScript { source } => Error {
-                code: ErrorCode::ServerError(-32010),
+                code: ErrorCode::ServerError(-32011),
                 message: format!("Failed to run interface_checker script: {}", source),
                 data: None,
             },
+            NetworkError::SerdeSerialize { source } => Error {
+                code: ErrorCode::ServerError(-32010),
+                message: format!("JSON serialization failed: {}", source),
+                data: None,
+            },
             NetworkError::WpaCtrlOpen { source } => Error {
-                code: ErrorCode::ServerError(-32011),
+                code: ErrorCode::ServerError(-32012),
                 message: format!(
                     "Failed to open control interface for wpasupplicant: {}",
                     source
@@ -131,7 +167,7 @@ impl From<NetworkError> for Error {
                 data: None,
             },
             NetworkError::WpaCtrlRequest { source } => Error {
-                code: ErrorCode::ServerError(-32012),
+                code: ErrorCode::ServerError(-32013),
                 message: format!("WPA supplicant request failed: {}", source),
                 data: None,
             },

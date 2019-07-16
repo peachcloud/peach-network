@@ -86,6 +86,21 @@ pub fn run() -> Result<(), BoxError> {
         }
     });
 
+    io.add_method("get_traffic", move |params: Params| {
+        let i: Result<Iface, Error> = params.parse();
+        match i {
+            Ok(i) => {
+                let iface = i.iface;
+                let traffic = network::get_traffic(&iface)?;
+                match traffic {
+                    Some(traffic) => Ok(Value::String(traffic)),
+                    None => Err(Error::from(NetworkError::GetTraffic { iface })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
+
     io.add_method("if_checker", move |_| {
         network::run_iface_script()?;
 
@@ -309,6 +324,28 @@ mod tests {
         );
     }
 
+    // test to ensure correct gettraffic error response
+    #[test]
+    fn rpc_gettraffic_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_gettraffic_error", |_| {
+                Err(Error::from(NetworkError::GetTraffic {
+                    iface: "wlan0".to_string(),
+                }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_gettraffic_error", &()),
+            r#"{
+  "code": -32004,
+  "message": "No network traffic statistics found for wlan0. Interface may not exist"
+}"#
+        );
+    }
+
     // test to ensure correct listsavednetworks error response
     #[test]
     fn rpc_listsavednetworks_error() {
@@ -323,7 +360,7 @@ mod tests {
         assert_eq!(
             rpc.request("rpc_listsavednetworks_error", &()),
             r#"{
-  "code": -32004,
+  "code": -32005,
   "message": "No saved networks found"
 }"#
         );
@@ -345,7 +382,7 @@ mod tests {
         assert_eq!(
             rpc.request("rpc_listscanresults_error", &()),
             r#"{
-  "code": -32005,
+  "code": -32006,
   "message": "No networks found in range of wlan0"
 }"#
         );
@@ -394,7 +431,7 @@ mod tests {
         assert_eq!(
             rpc.request("rpc_noipfound_error", &()),
             r#"{
-  "code": -32006,
+  "code": -32007,
   "message": "No IP address found for wlan0"
 }"#
         );
@@ -416,7 +453,7 @@ mod tests {
         assert_eq!(
             rpc.request("rpc_reassociate_error", &()),
             r#"{
-  "code": -32007,
+  "code": -32008,
   "message": "Failed to reassociate with WiFi network for wlan0"
 }"#
         );
@@ -438,7 +475,7 @@ mod tests {
         assert_eq!(
             rpc.request("rpc_reconnect_error", &()),
             r#"{
-  "code": -32008,
+  "code": -32009,
   "message": "Failed to reconnect with WiFi network for wlan0"
 }"#
         );
@@ -459,7 +496,7 @@ mod tests {
         assert_eq!(
             rpc.request("rpc_regex_error", &()),
             r#"{
-  "code": -32009,
+  "code": -32010,
   "message": "Regex command error: oh no!"
 }"#
         );
@@ -480,7 +517,7 @@ mod tests {
         assert_eq!(
             rpc.request("rpc_runapclientscript_error", &()),
             r#"{
-  "code": -32010,
+  "code": -32011,
   "message": "Failed to run interface_checker script: oh no!"
 }"#
         );
@@ -502,7 +539,7 @@ mod tests {
         assert_eq!(
             rpc.request("rpc_wpactrlopen_error", &()),
             r#"{
-  "code": -32011,
+  "code": -32012,
   "message": "Failed to open control interface for wpasupplicant: Permission denied (os error 13)"
 }"#
         );
@@ -524,7 +561,7 @@ mod tests {
         assert_eq!(
             rpc.request("rpc_wpactrlrequest_error", &()),
             r#"{
-  "code": -32012,
+  "code": -32013,
   "message": "WPA supplicant request failed: oh no!"
 }"#
         );

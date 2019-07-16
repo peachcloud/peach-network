@@ -16,6 +16,7 @@ _Note: This module is a work-in-progress._
 | `get_ip` | `iface` | Return IP of given network interface |
 | `get_rssi` | `iface` | Return average signal strength for given interface |
 | `get_ssid` | `iface` | Return SSID of currently-connected network for given interface |
+| `get_traffic` | `iface` | Return network traffic for given interface |
 | `if_checker` | | Run AP / client-mode configuration script |
 | `list_networks` | | List all networks saved in wpasupplicant config |
 | `ping` | | Respond with `success` if microservice is running |
@@ -74,7 +75,7 @@ Server response when interface is connected:
 
 Server response when interface is not connected:
 
-`{"jsonrpc":"2.0","error":{"code":-32000,"message":"Failed to retrieve SSID for wlan1. Interface may not be connected."},"id":1}`
+`{"jsonrpc":"2.0","error":{"code":-32003,"message":"Failed to retrieve SSID for wlan1. Interface may not be connected."},"id":1}`
 
 **Retrieve list of SSIDs for all networks in range of wlan0**
 
@@ -86,7 +87,19 @@ Server response when interface is connected:
 
 Server response when interface is not connected:
 
-`{"jsonrpc":"2.0","error":{"code":-32000,"message":"No networks found in range of interface wlan0"},"id":1}`
+`{"jsonrpc":"2.0","error":{"code":-32006,"message":"No networks found in range of wlan0"},"id":1}`
+
+**Retrieve network traffic statistics for wlan1**
+
+`curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "get_traffic", "params" : {"iface": "wlan1" }, "id":1 }' 127.0.0.1:5000`
+
+Server response if interface exists:
+
+`{"jsonrpc":"2.0","result":"{\"received\":26396361,\"transmitted\":22352530}","id":1}`
+
+Server response when interface is not found:
+
+`{"jsonrpc":"2.0","error":{"code":-32004,"message":"Failed to retrieve network traffic for wlan3. Interface may not be connected"},"id":1}`
 
 ### Licensing
 

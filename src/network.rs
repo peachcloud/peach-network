@@ -4,8 +4,9 @@ extern crate wpactrl;
 
 use std::{process::Command, result::Result, str};
 
+use probes::network;
 use regex::Regex;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 
 use crate::error::*;
@@ -13,6 +14,12 @@ use crate::error::*;
 #[derive(Debug, Deserialize)]
 pub struct Iface {
     pub iface: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Traffic {
+    pub received: u64,
+    pub transmitted: u64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -97,6 +104,26 @@ pub fn get_ssid(iface: &str) -> Result<Option<String>, NetworkError> {
     };
 
     Ok(ssid)
+}
+
+// retrieve network traffic stats for given interface
+pub fn get_traffic(iface: &str) -> Result<Option<String>, NetworkError> {
+    let network = network::read().context(ReadTraffic { iface })?;
+    for (interface, traffic) in network.interfaces {
+        if interface == iface {
+            let received = traffic.received;
+            let transmitted = traffic.transmitted;
+            let traffic = Traffic {
+                received,
+                transmitted,
+            };
+            // TODO: add test for SerdeSerialize error
+            let t = serde_json::to_string(&traffic).context(SerdeSerialize)?;
+            return Ok(Some(t));
+        }
+    }
+
+    Ok(None)
 }
 
 // list all wireless networks saved to the wpasupplicant config
