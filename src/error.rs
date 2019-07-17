@@ -56,7 +56,7 @@ pub enum NetworkError {
     #[snafu(display("Failed to run interface_checker script: {}", source))]
     RunApClientScript { source: io::Error },
 
-    #[snafu(display("JSON serialization failed"))]
+    #[snafu(display("JSON serialization failed: {}", source))]
     SerdeSerialize { source: SerdeError },
 
     #[snafu(display("Failed to open control interface for wpasupplicant"))]
