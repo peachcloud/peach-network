@@ -154,12 +154,12 @@ impl From<NetworkError> for Error {
                 data: None,
             },
             NetworkError::SerdeSerialize { source } => Error {
-                code: ErrorCode::ServerError(-32010),
+                code: ErrorCode::ServerError(-32012),
                 message: format!("JSON serialization failed: {}", source),
                 data: None,
             },
             NetworkError::WpaCtrlOpen { source } => Error {
-                code: ErrorCode::ServerError(-32012),
+                code: ErrorCode::ServerError(-32013),
                 message: format!(
                     "Failed to open control interface for wpasupplicant: {}",
                     source
@@ -167,7 +167,7 @@ impl From<NetworkError> for Error {
                 data: None,
             },
             NetworkError::WpaCtrlRequest { source } => Error {
-                code: ErrorCode::ServerError(-32013),
+                code: ErrorCode::ServerError(-32014),
                 message: format!("WPA supplicant request failed: {}", source),
                 data: None,
             },

@@ -539,7 +539,7 @@ mod tests {
         assert_eq!(
             rpc.request("rpc_wpactrlopen_error", &()),
             r#"{
-  "code": -32012,
+  "code": -32013,
   "message": "Failed to open control interface for wpasupplicant: Permission denied (os error 13)"
 }"#
         );
@@ -561,7 +561,7 @@ mod tests {
         assert_eq!(
             rpc.request("rpc_wpactrlrequest_error", &()),
             r#"{
-  "code": -32013,
+  "code": -32014,
   "message": "WPA supplicant request failed: oh no!"
 }"#
         );
