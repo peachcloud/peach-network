@@ -27,13 +27,10 @@ pub fn run() -> Result<(), BoxError> {
     io.add_method("add_wifi", move |params: Params| {
         let w: Result<WiFi, Error> = params.parse();
         match w {
-            Ok(_) => {
-                let w: WiFi = w?;
-                match network::add_wifi(&w) {
-                    Ok(_) => Ok(Value::String("success".to_string())),
-                    Err(_) => Err(Error::from(NetworkError::AddWifi { ssid: w.ssid })),
-                }
-            }
+            Ok(w) => match network::add_wifi(&w) {
+                Ok(_) => Ok(Value::String("success".to_string())),
+                Err(_) => Err(Error::from(NetworkError::AddWifi { ssid: w.ssid })),
+            },
             Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
         }
     });
@@ -41,11 +38,9 @@ pub fn run() -> Result<(), BoxError> {
     io.add_method("get_ip", move |params: Params| {
         let i: Result<Iface, Error> = params.parse();
         match i {
-            Ok(_) => {
-                let i: Iface = i?;
-                let iface = i.iface.to_string();
-                let ip = network::get_ip(&iface)?;
-                match ip {
+            Ok(i) => {
+                let iface = i.iface;
+                match network::get_ip(&iface)? {
                     Some(ip) => Ok(Value::String(ip)),
                     None => Err(Error::from(NetworkError::NoIpFound { iface })),
                 }
@@ -57,11 +52,9 @@ pub fn run() -> Result<(), BoxError> {
     io.add_method("get_rssi", move |params: Params| {
         let i: Result<Iface, Error> = params.parse();
         match i {
-            Ok(_) => {
-                let i: Iface = i?;
-                let iface = i.iface.to_string();
-                let rssi = network::get_rssi(&iface)?;
-                match rssi {
+            Ok(i) => {
+                let iface = i.iface;
+                match network::get_rssi(&iface)? {
                     Some(rssi) => Ok(Value::String(rssi)),
                     None => Err(Error::from(NetworkError::GetRssi { iface })),
                 }
@@ -73,11 +66,9 @@ pub fn run() -> Result<(), BoxError> {
     io.add_method("get_ssid", move |params: Params| {
         let i: Result<Iface, Error> = params.parse();
         match i {
-            Ok(_) => {
-                let i: Iface = i?;
-                let iface = i.iface.to_string();
-                let ip = network::get_ssid(&iface)?;
-                match ip {
+            Ok(i) => {
+                let iface = i.iface;
+                match network::get_ssid(&iface)? {
                     Some(ip) => Ok(Value::String(ip)),
                     None => Err(Error::from(NetworkError::GetSsid { iface })),
                 }
@@ -91,8 +82,7 @@ pub fn run() -> Result<(), BoxError> {
         match i {
             Ok(i) => {
                 let iface = i.iface;
-                let traffic = network::get_traffic(&iface)?;
-                match traffic {
+                match network::get_traffic(&iface)? {
                     Some(traffic) => Ok(Value::String(traffic)),
                     None => Err(Error::from(NetworkError::GetTraffic { iface })),
                 }
@@ -123,11 +113,9 @@ pub fn run() -> Result<(), BoxError> {
     io.add_method("scan_networks", move |params: Params| {
         let i: Result<Iface, Error> = params.parse();
         match i {
-            Ok(_) => {
-                let i: Iface = i?;
-                let iface = i.iface.to_string();
-                let list = network::scan_networks(&iface)?;
-                match list {
+            Ok(i) => {
+                let iface = i.iface;
+                match network::scan_networks(&iface)? {
                     Some(list) => {
                         let json_ssids = json!(list);
                         Ok(Value::String(json_ssids.to_string()))
@@ -142,9 +130,8 @@ pub fn run() -> Result<(), BoxError> {
     io.add_method("reassociate_wifi", move |params: Params| {
         let i: Result<Iface, Error> = params.parse();
         match i {
-            Ok(_) => {
-                let i: Iface = i?;
-                let iface = i.iface.to_string();
+            Ok(i) => {
+                let iface = i.iface;
                 match network::reassociate_wifi(&iface) {
                     Ok(_) => Ok(Value::String("success".to_string())),
                     Err(_) => Err(Error::from(NetworkError::Reassociate { iface })),
@@ -157,9 +144,8 @@ pub fn run() -> Result<(), BoxError> {
     io.add_method("reconnect_wifi", move |params: Params| {
         let i: Result<Iface, Error> = params.parse();
         match i {
-            Ok(_) => {
-                let i: Iface = i?;
-                let iface = i.iface.to_string();
+            Ok(i) => {
+                let iface = i.iface;
                 match network::reconnect_wifi(&iface) {
                     Ok(_) => Ok(Value::String("success".to_string())),
                     Err(_) => Err(Error::from(NetworkError::Reconnect { iface })),
