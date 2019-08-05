@@ -24,6 +24,12 @@ pub fn run() -> Result<(), BoxError> {
     info!("Creating JSON-RPC I/O handler.");
     let mut io = IoHandler::default();
 
+    io.add_method("activate_ap", move |_| {
+        network::activate_ap()?;
+
+        Ok(Value::String("success".to_string()))
+    });
+
     io.add_method("add_wifi", move |params: Params| {
         let w: Result<WiFi, Error> = params.parse();
         match w {
@@ -505,6 +511,90 @@ mod tests {
             r#"{
   "code": -32011,
   "message": "Failed to run interface_checker script: oh no!"
+}"#
+        );
+    }
+
+    // test to ensure correct SetWlanInterfaceDown error response
+    #[test]
+    fn rpc_setwlaninterfacedown_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_setwlaninterfacedown_error", |_| {
+                let source = IoError::new(ErrorKind::PermissionDenied, "oh no!");
+                Err(Error::from(NetworkError::SetWlanInterfaceDown { source }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_setwlaninterfacedown_error", &()),
+            r#"{
+  "code": -32016,
+  "message": "Failed to take wlan0 interface down: oh no!"
+}"#
+        );
+    }
+
+    // test to ensure correct StartDnsmasq error response
+    #[test]
+    fn rpc_startdnsmasq_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_startdnsmasq_error", |_| {
+                let source = IoError::new(ErrorKind::PermissionDenied, "oh no!");
+                Err(Error::from(NetworkError::StartDnsmasq { source }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_startdnsmasq_error", &()),
+            r#"{
+  "code": -32018,
+  "message": "Failed to start dnsmasq process: oh no!"
+}"#
+        );
+    }
+
+    // test to ensure correct StartHostapd error response
+    #[test]
+    fn rpc_starthostapd_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_starthostapd_error", |_| {
+                let source = IoError::new(ErrorKind::PermissionDenied, "oh no!");
+                Err(Error::from(NetworkError::StartHostapd { source }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_starthostapd_error", &()),
+            r#"{
+  "code": -32017,
+  "message": "Failed to start hostapd process: oh no!"
+}"#
+        );
+    }
+
+    // test to ensure correct StopWpaSupplicant error response
+    #[test]
+    fn rpc_stopwpasupplicant_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_stopwpasupplicant_error", |_| {
+                let source = IoError::new(ErrorKind::PermissionDenied, "oh no!");
+                Err(Error::from(NetworkError::StopWpaSupplicant { source }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_stopwpasupplicant_error", &()),
+            r#"{
+  "code": -32015,
+  "message": "Failed to stop wpasupplicant process: oh no!"
 }"#
         );
     }

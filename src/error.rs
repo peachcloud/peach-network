@@ -59,6 +59,18 @@ pub enum NetworkError {
     #[snafu(display("JSON serialization failed: {}", source))]
     SerdeSerialize { source: SerdeError },
 
+    #[snafu(display("Failed to take the wlan0 interface down: {}", source))]
+    SetWlanInterfaceDown { source: io::Error },
+
+    #[snafu(display("Failed to stop wpasupplicant process: {}", source))]
+    StopWpaSupplicant { source: io::Error },
+
+    #[snafu(display("Failed to start dnsmasq process: {}", source))]
+    StartDnsmasq { source: io::Error },
+
+    #[snafu(display("Failed to start hostapd process: {}", source))]
+    StartHostapd { source: io::Error },
+
     #[snafu(display("Failed to open control interface for wpasupplicant"))]
     WpaCtrlOpen {
         #[snafu(source(from(failure::Error, std::convert::Into::into)))]
@@ -156,6 +168,26 @@ impl From<NetworkError> for Error {
             NetworkError::SerdeSerialize { source } => Error {
                 code: ErrorCode::ServerError(-32012),
                 message: format!("JSON serialization failed: {}", source),
+                data: None,
+            },
+            NetworkError::SetWlanInterfaceDown { source } => Error {
+                code: ErrorCode::ServerError(-32016),
+                message: format!("Failed to take wlan0 interface down: {}", source),
+                data: None,
+            },
+            NetworkError::StartDnsmasq { source } => Error {
+                code: ErrorCode::ServerError(-32018),
+                message: format!("Failed to start dnsmasq process: {}", source),
+                data: None,
+            },
+            NetworkError::StartHostapd { source } => Error {
+                code: ErrorCode::ServerError(-32017),
+                message: format!("Failed to start hostapd process: {}", source),
+                data: None,
+            },
+            NetworkError::StopWpaSupplicant { source } => Error {
+                code: ErrorCode::ServerError(-32015),
+                message: format!("Failed to stop wpasupplicant process: {}", source),
                 data: None,
             },
             NetworkError::WpaCtrlOpen { source } => Error {

@@ -28,6 +28,39 @@ pub struct WiFi {
     pub pass: String,
 }
 
+// active access point
+pub fn activate_ap() -> Result<(), NetworkError> {
+    // systemctl stop wpa_supplicant
+    Command::new("sudo")
+        .arg("/usr/bin/systemctl")
+        .arg("stop")
+        .arg("wpa_supplicant")
+        .output()
+        .context(StopWpaSupplicant)?;
+    // ifdown wlan0
+    Command::new("sudo")
+        .arg("ifdown")
+        .arg("wlan0")
+        .output()
+        .context(SetWlanInterfaceDown)?;
+    // systemctl start hostapd
+    Command::new("sudo")
+        .arg("/usr/bin/systemctl")
+        .arg("start")
+        .arg("hostapd")
+        .output()
+        .context(StartHostapd)?;
+    // systemctl start dnsmasq
+    Command::new("sudo")
+        .arg("/usr/bin/systemctl")
+        .arg("start")
+        .arg("dnsmasq")
+        .output()
+        .context(StartDnsmasq)?;
+    
+    Ok(())
+}
+
 // add network and save configuration for given ssid and password
 pub fn add_wifi(wifi: &WiFi) -> Result<(), NetworkError> {
     let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
