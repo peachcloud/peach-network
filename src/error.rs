@@ -59,8 +59,11 @@ pub enum NetworkError {
     #[snafu(display("JSON serialization failed: {}", source))]
     SerdeSerialize { source: SerdeError },
 
-    #[snafu(display("Failed to take the wlan0 interface down: {}", source))]
+    #[snafu(display("Failed to set the wlan0 interface down: {}", source))]
     SetWlanInterfaceDown { source: io::Error },
+
+    #[snafu(display("Failed to set the wlan0 interface up: {}", source))]
+    SetWlanInterfaceUp { source: io::Error },
 
     #[snafu(display("Failed to stop wpasupplicant process: {}", source))]
     StopWpaSupplicant { source: io::Error },
@@ -68,8 +71,14 @@ pub enum NetworkError {
     #[snafu(display("Failed to start dnsmasq process: {}", source))]
     StartDnsmasq { source: io::Error },
 
+    #[snafu(display("Failed to stop dnsmasq process: {}", source))]
+    StopDnsmasq { source: io::Error },
+
     #[snafu(display("Failed to start hostapd process: {}", source))]
     StartHostapd { source: io::Error },
+
+    #[snafu(display("Failed to stop hostapd process: {}", source))]
+    StopHostapd { source: io::Error },
 
     #[snafu(display("Failed to open control interface for wpasupplicant"))]
     WpaCtrlOpen {
@@ -172,7 +181,12 @@ impl From<NetworkError> for Error {
             },
             NetworkError::SetWlanInterfaceDown { source } => Error {
                 code: ErrorCode::ServerError(-32016),
-                message: format!("Failed to take wlan0 interface down: {}", source),
+                message: format!("Failed to set wlan0 interface down: {}", source),
+                data: None,
+            },
+            NetworkError::SetWlanInterfaceUp { source } => Error {
+                code: ErrorCode::ServerError(-32019),
+                message: format!("Failed to set wlan0 interface up: {}", source),
                 data: None,
             },
             NetworkError::StartDnsmasq { source } => Error {
@@ -180,9 +194,19 @@ impl From<NetworkError> for Error {
                 message: format!("Failed to start dnsmasq process: {}", source),
                 data: None,
             },
+            NetworkError::StopDnsmasq { source } => Error {
+                code: ErrorCode::ServerError(-32020),
+                message: format!("Failed to stop dnsmasq process: {}", source),
+                data: None,
+            },
             NetworkError::StartHostapd { source } => Error {
                 code: ErrorCode::ServerError(-32017),
                 message: format!("Failed to start hostapd process: {}", source),
+                data: None,
+            },
+            NetworkError::StopHostapd { source } => Error {
+                code: ErrorCode::ServerError(-32021),
+                message: format!("Failed to stop hostapd process: {}", source),
                 data: None,
             },
             NetworkError::StopWpaSupplicant { source } => Error {

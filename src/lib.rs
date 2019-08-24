@@ -30,6 +30,12 @@ pub fn run() -> Result<(), BoxError> {
         Ok(Value::String("success".to_string()))
     });
 
+    io.add_method("activate_client", move |_| {
+        network::activate_client()?;
+
+        Ok(Value::String("success".to_string()))
+    });
+
     io.add_method("add_wifi", move |params: Params| {
         let w: Result<WiFi, Error> = params.parse();
         match w {

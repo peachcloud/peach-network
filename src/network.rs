@@ -28,7 +28,7 @@ pub struct WiFi {
     pub pass: String,
 }
 
-// active access point
+// activate wifi access point
 pub fn activate_ap() -> Result<(), NetworkError> {
     // systemctl stop wpa_supplicant
     Command::new("sudo")
@@ -39,7 +39,7 @@ pub fn activate_ap() -> Result<(), NetworkError> {
         .context(StopWpaSupplicant)?;
     // ifdown wlan0
     Command::new("sudo")
-        .arg("ifdown")
+        .arg("/usr/sbin/ifdown")
         .arg("wlan0")
         .output()
         .context(SetWlanInterfaceDown)?;
@@ -57,6 +57,32 @@ pub fn activate_ap() -> Result<(), NetworkError> {
         .arg("dnsmasq")
         .output()
         .context(StartDnsmasq)?;
+    
+    Ok(())
+}
+
+// activate wifi client connection
+pub fn activate_client() -> Result<(), NetworkError> {
+    // systemctl stop hostap
+    Command::new("sudo")
+        .arg("/usr/bin/systemctl")
+        .arg("stop")
+        .arg("hostapd")
+        .output()
+        .context(StopHostapd)?;
+    // systemctl stop dnsmasq
+    Command::new("sudo")
+        .arg("/usr/bin/systemctl")
+        .arg("stop")
+        .arg("dnsmasq")
+        .output()
+        .context(StopDnsmasq)?;
+    // ifup wlan0
+    Command::new("sudo")
+        .arg("/usr/sbin/ifup")
+        .arg("wlan0")
+        .output()
+        .context(SetWlanInterfaceUp)?;
     
     Ok(())
 }
