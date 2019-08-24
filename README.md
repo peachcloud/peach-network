@@ -13,7 +13,7 @@ _Note: This module is a work-in-progress._
 | Method | Parameters | Description |
 | --- | --- | --- |
 | `activate_ap` | | Activate WiFi access point (stop `wpa_supplicant` and start `hostapd` and `dnsmasq`) |
-| `activate_client` | | Activate WiFi client connection (stop `hostapd` and `dnsmasq` and start `wpa_supplicant` |
+| `activate_client` | | Activate WiFi client connection (stop `hostapd` and `dnsmasq` and start `wpa_supplicant`) |
 | `add_wifi` | `ssid`, `pass` | Connect to WiFi with given SSID and password |
 | `get_ip` | `iface` | Return IP of given network interface |
 | `get_rssi` | `iface` | Return average signal strength for given interface |
