@@ -13,6 +13,9 @@ pub enum NetworkError {
     #[snafu(display("Failed to add network for {}", ssid))]
     AddWifi { ssid: String },
 
+    #[snafu(display("Failed to retrieve state for wlan0"))]
+    CatWlanOperstate { source: io::Error },
+
     #[snafu(display("Could not access IP address for interface: {}", iface))]
     GetIp { iface: String, source: io::Error },
 
@@ -99,6 +102,11 @@ impl From<NetworkError> for Error {
             NetworkError::AddWifi { ssid } => Error {
                 code: ErrorCode::ServerError(-32000),
                 message: format!("Failed to add network for {}", ssid),
+                data: None,
+            },
+            NetworkError::CatWlanOperstate { source } => Error {
+                code: ErrorCode::ServerError(-32022),
+                message: format!("Failed to retrieve wlan0 state: {}", source),
                 data: None,
             },
             NetworkError::GetIp { iface, source } => Error {

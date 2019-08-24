@@ -185,6 +185,20 @@ pub fn get_traffic(iface: &str) -> Result<Option<String>, NetworkError> {
     Ok(None)
 }
 
+// retrieve current state of the wlan0 device by querying operstate
+pub fn get_wifi_state() -> Result<String, NetworkError> {
+    let output = Command::new("cat")
+        .arg("/sys/class/net/wlan0/operstate")
+        .output()
+        .context(CatWlanOperstate)?;
+    let mut state = String::from_utf8(output.stdout).unwrap();
+    // remove trailing newline character
+    let len = state.len();
+    state.truncate(len - 1);
+    
+    Ok(state)
+}
+
 // list all wireless networks saved to the wpasupplicant config
 pub fn list_networks() -> Result<Option<Vec<String>>, NetworkError> {
     let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;

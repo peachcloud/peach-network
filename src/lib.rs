@@ -103,6 +103,12 @@ pub fn run() -> Result<(), BoxError> {
         }
     });
 
+    io.add_method("get_wifi_state", move |_| {
+        let state = network::get_wifi_state()?;
+
+        Ok(Value::String(state))
+    });
+
     io.add_method("if_checker", move |_| {
         network::run_iface_script()?;
 

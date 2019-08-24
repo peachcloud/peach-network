@@ -19,6 +19,7 @@ _Note: This module is a work-in-progress._
 | `get_rssi` | `iface` | Return average signal strength for given interface |
 | `get_ssid` | `iface` | Return SSID of currently-connected network for given interface |
 | `get_traffic` | `iface` | Return network traffic for given interface |
+| `get_wifi_state` | | Return state of wlan0 interface |
 | `if_checker` | | Run AP / client-mode configuration script |
 | `list_networks` | | List all networks saved in wpasupplicant config |
 | `ping` | | Respond with `success` if microservice is running |
