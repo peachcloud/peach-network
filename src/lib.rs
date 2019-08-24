@@ -502,7 +502,7 @@ mod tests {
 
     // test to ensure correct runapclientscript error response
     #[test]
-    fn rpc_rrunapclientscript_error() {
+    fn rpc_runapclientscript_error() {
         let rpc = {
             let mut io = IoHandler::new();
             io.add_method("rpc_runapclientscript_error", |_| {
@@ -537,7 +537,7 @@ mod tests {
             rpc.request("rpc_setwlaninterfacedown_error", &()),
             r#"{
   "code": -32016,
-  "message": "Failed to take wlan0 interface down: oh no!"
+  "message": "Failed to set wlan0 interface down: oh no!"
 }"#
         );
     }
