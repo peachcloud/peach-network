@@ -13,8 +13,8 @@ pub enum NetworkError {
     #[snafu(display("Failed to add network for {}", ssid))]
     AddWifi { ssid: String },
 
-    #[snafu(display("Failed to retrieve state for wlan0"))]
-    CatWlanOperstate { source: io::Error },
+    #[snafu(display("Failed to retrieve state for interface: {}", iface))]
+    CatIfaceState { iface: String, source: io::Error },
 
     #[snafu(display("Could not access IP address for interface: {}", iface))]
     GetIp { iface: String, source: io::Error },
@@ -25,6 +25,9 @@ pub enum NetworkError {
     #[snafu(display("Could not find SSID for interface: {}", iface))]
     GetSsid { iface: String },
 
+    #[snafu(display("No state found for interface: {}", iface))]
+    GetState { iface: String },
+    
     #[snafu(display("Could not find network traffic for interface: {}", iface))]
     GetTraffic { iface: String },
 
@@ -104,9 +107,9 @@ impl From<NetworkError> for Error {
                 message: format!("Failed to add network for {}", ssid),
                 data: None,
             },
-            NetworkError::CatWlanOperstate { source } => Error {
+            NetworkError::CatIfaceState { iface, source } => Error {
                 code: ErrorCode::ServerError(-32022),
-                message: format!("Failed to retrieve wlan0 state: {}", source),
+                message: format!("Failed to retrieve interface state for {}: {}", iface, source),
                 data: None,
             },
             NetworkError::GetIp { iface, source } => Error {
@@ -126,6 +129,14 @@ impl From<NetworkError> for Error {
                 code: ErrorCode::ServerError(-32003),
                 message: format!(
                     "Failed to retrieve SSID for {}. Interface may not be connected",
+                    iface
+                ),
+                data: None,
+            },
+            NetworkError::GetState { iface } => Error {
+                code: ErrorCode::ServerError(-32023),
+                message: format!(
+                    "No state found for {}. Interface may not exist",
                     iface
                 ),
                 data: None,

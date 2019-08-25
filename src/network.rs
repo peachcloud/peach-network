@@ -165,6 +165,24 @@ pub fn get_ssid(iface: &str) -> Result<Option<String>, NetworkError> {
     Ok(ssid)
 }
 
+// retrieve current state for the given interface by querying operstate
+pub fn get_state(iface: &str) -> Result<Option<String>, NetworkError> {
+    let iface_path: String = format!("/sys/class/net/{}/operstate", iface);
+    let output = Command::new("cat")
+        .arg(iface_path)
+        .output()
+        .context(CatIfaceState{ iface })?;
+    if output.stdout.len() > 0 {
+        let mut state = String::from_utf8(output.stdout).unwrap();
+        // remove trailing newline character
+        let len = state.len();
+        state.truncate(len - 1);
+        return Ok(Some(state));
+    }
+        
+    Ok(None)
+}
+
 // retrieve network traffic stats for given interface
 pub fn get_traffic(iface: &str) -> Result<Option<String>, NetworkError> {
     let network = network::read().context(ReadTraffic { iface })?;
@@ -183,20 +201,6 @@ pub fn get_traffic(iface: &str) -> Result<Option<String>, NetworkError> {
     }
 
     Ok(None)
-}
-
-// retrieve current state of the wlan0 device by querying operstate
-pub fn get_wifi_state() -> Result<String, NetworkError> {
-    let output = Command::new("cat")
-        .arg("/sys/class/net/wlan0/operstate")
-        .output()
-        .context(CatWlanOperstate)?;
-    let mut state = String::from_utf8(output.stdout).unwrap();
-    // remove trailing newline character
-    let len = state.len();
-    state.truncate(len - 1);
-    
-    Ok(state)
 }
 
 // list all wireless networks saved to the wpasupplicant config

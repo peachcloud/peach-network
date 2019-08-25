@@ -89,6 +89,20 @@ pub fn run() -> Result<(), BoxError> {
         }
     });
 
+    io.add_method("get_state", move |params: Params| {
+        let i: Result<Iface, Error> = params.parse();
+        match i {
+            Ok(i) => {
+                let iface = i.iface;
+                match network::get_state(&iface)? {
+                    Some(state) => Ok(Value::String(state)),
+                    None => Err(Error::from(NetworkError::GetState { iface })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
+
     io.add_method("get_traffic", move |params: Params| {
         let i: Result<Iface, Error> = params.parse();
         match i {
@@ -101,12 +115,6 @@ pub fn run() -> Result<(), BoxError> {
             }
             Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
         }
-    });
-
-    io.add_method("get_wifi_state", move |_| {
-        let state = network::get_wifi_state()?;
-
-        Ok(Value::String(state))
     });
 
     io.add_method("if_checker", move |_| {
@@ -324,6 +332,28 @@ mod tests {
             r#"{
   "code": -32003,
   "message": "Failed to retrieve SSID for wlan0. Interface may not be connected"
+}"#
+        );
+    }
+
+    // test to ensure correct getstate error response
+    #[test]
+    fn rpc_getstate_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_getstate_error", |_| {
+                Err(Error::from(NetworkError::GetState {
+                    iface: "wlan1".to_string(),
+                }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_getstate_error", &()),
+            r#"{
+  "code": -32023,
+  "message": "No state found for wlan1. Interface may not exist"
 }"#
         );
     }
