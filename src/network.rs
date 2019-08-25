@@ -172,7 +172,7 @@ pub fn get_state(iface: &str) -> Result<Option<String>, NetworkError> {
         .arg(iface_path)
         .output()
         .context(CatIfaceState{ iface })?;
-    if output.stdout.len() > 0 {
+    if !output.stdout.is_empty() {
         let mut state = String::from_utf8(output.stdout).unwrap();
         // remove trailing newline character
         let len = state.len();
