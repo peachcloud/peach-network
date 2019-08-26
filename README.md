@@ -50,11 +50,11 @@ Clone this repo:
 Move into the repo and compile:
 
 `cd peach-network`  
-`cargo build`
+`cargo build --release`
 
 Run the binary (sudo needed to satisfy permission requirements):
 
-`sudo ./target/debug/peach-network`
+`sudo ./target/release/peach-network`
 
 ### Example Usage
 
