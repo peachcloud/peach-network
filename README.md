@@ -104,6 +104,10 @@ Server response when interface is not found:
 
 `{"jsonrpc":"2.0","error":{"code":-32004,"message":"Failed to retrieve network traffic for wlan3. Interface may not be connected"},"id":1}`
 
+### Known Bugs
+
+The `get_rssi` RPC fails to retrieve signal strength.
+
 ### Licensing
 
 AGPL-3.0
