@@ -226,17 +226,17 @@ pub fn get_status(iface: &str) -> Result<IfaceStatus, NetworkError> {
     status_lines.next();
     let address = status_lines.next().unwrap();
     let iface_status = IfaceStatus {
-        address: address.to_string(),
-        bssid: bssid.to_string(),
-        freq: freq.to_string(),
-        group_cipher: group_cipher.to_string(),
-        id: id.to_string(),
-        ip_address: ip_address.to_string(),
-        key_mgmt: key_mgmt.to_string(),
-        mode: mode.to_string(),
-        pairwise_cipher: pairwise_cipher.to_string(),
-        ssid: ssid.to_string(),
-        wpa_state: wpa_state.to_string(),
+        address: address.to_string().split_off(8),
+        bssid: bssid.to_string().split_off(6),
+        freq: freq.to_string().split_off(5),
+        group_cipher: group_cipher.to_string().split_off(13),
+        id: id.to_string().split_off(3),
+        ip_address: ip_address.to_string().split_off(11),
+        key_mgmt: key_mgmt.to_string().split_off(9),
+        mode: mode.to_string().split_off(5),
+        pairwise_cipher: pairwise_cipher.to_string().split_off(16),
+        ssid: ssid.to_string().split_off(5),
+        wpa_state: wpa_state.to_string().split_off(10),
     };
 
     //println!("{:?}", iface_status);
