@@ -27,7 +27,7 @@ pub enum NetworkError {
 
     #[snafu(display("No state found for interface: {}", iface))]
     GetState { iface: String },
-    
+
     #[snafu(display("Could not find network traffic for interface: {}", iface))]
     GetTraffic { iface: String },
 
@@ -109,7 +109,10 @@ impl From<NetworkError> for Error {
             },
             NetworkError::CatIfaceState { iface, source } => Error {
                 code: ErrorCode::ServerError(-32022),
-                message: format!("Failed to retrieve interface state for {}: {}", iface, source),
+                message: format!(
+                    "Failed to retrieve interface state for {}: {}",
+                    iface, source
+                ),
                 data: None,
             },
             NetworkError::GetIp { iface, source } => Error {
@@ -135,10 +138,7 @@ impl From<NetworkError> for Error {
             },
             NetworkError::GetState { iface } => Error {
                 code: ErrorCode::ServerError(-32023),
-                message: format!(
-                    "No state found for {}. Interface may not exist",
-                    iface
-                ),
+                message: format!("No state found for {}. Interface may not exist", iface),
                 data: None,
             },
             NetworkError::GetTraffic { iface } => Error {

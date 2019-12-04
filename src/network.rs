@@ -28,6 +28,22 @@ pub struct WiFi {
     pub pass: String,
 }
 
+// struct for wpa_cli 'status' data
+#[derive(Debug, Deserialize)]
+pub struct IfaceStatus {
+    pub address: String,
+    pub bssid: String,
+    pub freq: String,
+    pub group_cipher: String,
+    pub id: String,
+    pub ip_address: String,
+    pub key_mgmt: String,
+    pub mode: String,
+    pub pairwise_cipher: String,
+    pub ssid: String,
+    pub wpa_state: String,
+}
+
 // activate wifi access point
 pub fn activate_ap() -> Result<(), NetworkError> {
     // systemctl stop wpa_supplicant
@@ -57,7 +73,7 @@ pub fn activate_ap() -> Result<(), NetworkError> {
         .arg("dnsmasq")
         .output()
         .context(StartDnsmasq)?;
-    
+
     Ok(())
 }
 
@@ -83,7 +99,7 @@ pub fn activate_client() -> Result<(), NetworkError> {
         .arg("wlan0")
         .output()
         .context(SetWlanInterfaceUp)?;
-    
+
     Ok(())
 }
 
@@ -154,8 +170,11 @@ pub fn get_ssid(iface: &str) -> Result<Option<String>, NetworkError> {
     let ssid = match caps {
         Some(caps) => {
             let ssid_name = &mut caps[0].to_string();
+            // split ssid_name at 6th character
+            // & assign 2nd half to ssid
             let mut ssid = ssid_name.split_off(6);
             let len = ssid.len();
+            // remove newline character
             ssid.truncate(len - 1);
             Some(ssid)
         }
@@ -171,7 +190,7 @@ pub fn get_state(iface: &str) -> Result<Option<String>, NetworkError> {
     let output = Command::new("cat")
         .arg(iface_path)
         .output()
-        .context(CatIfaceState{ iface })?;
+        .context(CatIfaceState { iface })?;
     if !output.stdout.is_empty() {
         let mut state = String::from_utf8(output.stdout).unwrap();
         // remove trailing newline character
@@ -179,8 +198,51 @@ pub fn get_state(iface: &str) -> Result<Option<String>, NetworkError> {
         state.truncate(len - 1);
         return Ok(Some(state));
     }
-        
+
     Ok(None)
+}
+
+// retrieve current status for the given interface
+// - serves aggregated interface data
+pub fn get_status(iface: &str) -> Result<IfaceStatus, NetworkError> {
+    let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
+    let mut wpa = wpactrl::WpaCtrl::new()
+        .ctrl_path(wpa_path)
+        .open()
+        .context(WpaCtrlOpen)?;
+    let status = wpa.request("STATUS").context(WpaCtrlRequest)?;
+    // another way of getting from status -> IfaceStatus struct
+    let mut status_lines = status.lines();
+    let bssid = status_lines.next().unwrap();
+    let freq = status_lines.next().unwrap();
+    let ssid = status_lines.next().unwrap();
+    let id = status_lines.next().unwrap();
+    let mode = status_lines.next().unwrap();
+    let pairwise_cipher = status_lines.next().unwrap();
+    let group_cipher = status_lines.next().unwrap();
+    let key_mgmt = status_lines.next().unwrap();
+    let wpa_state = status_lines.next().unwrap();
+    let ip_address = status_lines.next().unwrap();
+    status_lines.next();
+    let address = status_lines.next().unwrap();
+    let iface_status = IfaceStatus {
+        address: address.to_string(),
+        bssid: bssid.to_string(),
+        freq: freq.to_string(),
+        group_cipher: group_cipher.to_string(),
+        id: id.to_string(),
+        ip_address: ip_address.to_string(),
+        key_mgmt: key_mgmt.to_string(),
+        mode: mode.to_string(),
+        pairwise_cipher: pairwise_cipher.to_string(),
+        ssid: ssid.to_string(),
+        wpa_state: wpa_state.to_string(),
+    };
+
+    //println!("{:?}", iface_status);
+    info!("{:?}", iface_status);
+
+    Ok(iface_status)
 }
 
 // retrieve network traffic stats for given interface

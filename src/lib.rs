@@ -21,6 +21,8 @@ use crate::network::{Iface, WiFi};
 pub fn run() -> Result<(), BoxError> {
     info!("Starting up.");
 
+    network::get_status("wlan0").unwrap();
+
     info!("Creating JSON-RPC I/O handler.");
     let mut io = IoHandler::default();
 
