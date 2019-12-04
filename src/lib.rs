@@ -21,8 +21,6 @@ use crate::network::{Iface, WiFi};
 pub fn run() -> Result<(), BoxError> {
     info!("Starting up.");
 
-    network::get_status("wlan0").unwrap();
-
     info!("Creating JSON-RPC I/O handler.");
     let mut io = IoHandler::default();
 
@@ -99,6 +97,23 @@ pub fn run() -> Result<(), BoxError> {
                 match network::get_state(&iface)? {
                     Some(state) => Ok(Value::String(state)),
                     None => Err(Error::from(NetworkError::GetState { iface })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
+
+    io.add_method("get_status", move |params: Params| {
+        let i: Result<Iface, Error> = params.parse();
+        match i {
+            Ok(i) => {
+                let iface = i.iface;
+                match network::get_status(&iface)? {
+                    Some(status) => {
+                        let json_status = json!(status);
+                        Ok(Value::String(json_status.to_string()))
+                    }
+                    None => Err(Error::from(NetworkError::GetStatus { iface })),
                 }
             }
             Err(e) => Err(Error::from(NetworkError::MissingParams { e })),

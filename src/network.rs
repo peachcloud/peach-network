@@ -29,7 +29,7 @@ pub struct WiFi {
 }
 
 // struct for wpa_cli 'status' data
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct IfaceStatus {
     pub address: String,
     pub bssid: String,
@@ -204,15 +204,17 @@ pub fn get_state(iface: &str) -> Result<Option<String>, NetworkError> {
 
 // retrieve current status for the given interface
 // - serves aggregated interface data
-pub fn get_status(iface: &str) -> Result<IfaceStatus, NetworkError> {
+pub fn get_status(iface: &str) -> Result<Option<IfaceStatus>, NetworkError> {
     let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
     let mut wpa = wpactrl::WpaCtrl::new()
         .ctrl_path(wpa_path)
         .open()
         .context(WpaCtrlOpen)?;
     let status = wpa.request("STATUS").context(WpaCtrlRequest)?;
-    // another way of getting from status -> IfaceStatus struct
+    // returns an iterator over the lines in status
     let mut status_lines = status.lines();
+    // iterate through lines and assign variables accordingly
+    // TODO: unwraps are gross - remove please
     let bssid = status_lines.next().unwrap();
     let freq = status_lines.next().unwrap();
     let ssid = status_lines.next().unwrap();
@@ -223,8 +225,11 @@ pub fn get_status(iface: &str) -> Result<IfaceStatus, NetworkError> {
     let key_mgmt = status_lines.next().unwrap();
     let wpa_state = status_lines.next().unwrap();
     let ip_address = status_lines.next().unwrap();
+    // here we skip the line containing p2p_device_address
     status_lines.next();
     let address = status_lines.next().unwrap();
+
+    // assign values to struct fields, splitting after the `=` sign
     let iface_status = IfaceStatus {
         address: address.to_string().split_off(8),
         bssid: bssid.to_string().split_off(6),
@@ -239,10 +244,7 @@ pub fn get_status(iface: &str) -> Result<IfaceStatus, NetworkError> {
         wpa_state: wpa_state.to_string().split_off(10),
     };
 
-    //println!("{:?}", iface_status);
-    info!("{:?}", iface_status);
-
-    Ok(iface_status)
+    Ok(Some(iface_status))
 }
 
 // retrieve network traffic stats for given interface
