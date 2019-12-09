@@ -213,21 +213,49 @@ pub fn get_status(iface: &str) -> Result<Option<IfaceStatus>, NetworkError> {
     let status = wpa.request("STATUS").context(WpaCtrlRequest)?;
     // returns an iterator over the lines in status
     let mut status_lines = status.lines();
-    // iterate through lines and assign variables accordingly
-    // TODO: unwraps are gross - remove please
-    let bssid = status_lines.next().unwrap();
-    let freq = status_lines.next().unwrap();
-    let ssid = status_lines.next().unwrap();
-    let id = status_lines.next().unwrap();
-    let mode = status_lines.next().unwrap();
-    let pairwise_cipher = status_lines.next().unwrap();
-    let group_cipher = status_lines.next().unwrap();
-    let key_mgmt = status_lines.next().unwrap();
-    let wpa_state = status_lines.next().unwrap();
-    let ip_address = status_lines.next().unwrap();
-    // here we skip the line containing p2p_device_address
+    // iterate through lines
+    // check first line and return if None
+    //   -> None indicates no status info available for given interface
+    // if first line is Some, unwrap values and assign variables accordingly
+    if !status_lines.next().is_some() {
+        return Ok(None);
+    }
+
+    let bssid = status_lines
+        .next()
+        .expect("None value unwrap for bssid in get_status");
+    let freq = status_lines
+        .next()
+        .expect("None value unwrap for freq in get_status");
+    let ssid = status_lines
+        .next()
+        .expect("None value unwrap for ssid in get_status");
+    let id = status_lines
+        .next()
+        .expect("None value unwrap for id in get_status");
+    let mode = status_lines
+        .next()
+        .expect("None value unwrap for mode in get_status");
+    let pairwise_cipher = status_lines
+        .next()
+        .expect("None value unwrap for pairwise_cipher in get_status");
+    let group_cipher = status_lines
+        .next()
+        .expect("None value unwrap for group_cipher in get_status");
+    let key_mgmt = status_lines
+        .next()
+        .expect("None value unwrap for key_mgmt in get_status");
+    let wpa_state = status_lines
+        .next()
+        .expect("None value unwrap for wpa_state in get_status");
+    let ip_address = status_lines
+        .next()
+        .expect("None value unwrap for ip_address in get_status");
+    // skip line containing p2p_device_address
     status_lines.next();
-    let address = status_lines.next().unwrap();
+    let address = status_lines
+        .next()
+        .expect("None value unwrap for address in get_status");
 
     // assign values to struct fields, splitting after the `=` sign
     let iface_status = IfaceStatus {

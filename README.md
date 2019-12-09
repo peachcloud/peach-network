@@ -19,11 +19,12 @@ _Note: This module is a work-in-progress._
 | `get_rssi` | `iface` | Return average signal strength for given interface |
 | `get_ssid` | `iface` | Return SSID of currently-connected network for given interface |
 | `get_state` | `iface` | Return state of given interface |
+| `get_status` | `iface` | Return status parameters for given interface |
 | `get_traffic` | `iface` | Return network traffic for given interface |
 | `if_checker` | | Run AP / client-mode configuration script |
 | `list_networks` | | List all networks saved in wpasupplicant config |
 | `ping` | | Respond with `success` if microservice is running |
-| `scan_networks` | `iface` | List all networks in range of given interface |
+| `scan_networks` | `iface` | List SSIDs of all networks in range of given interface |
 | `reconnect_wifi` | `iface` | Disconnect and reconnect given interface |
 | `reassociate_wifi` | `iface` | Reassociate with current AP for given interface |
 
@@ -103,6 +104,18 @@ Server response if interface exists:
 Server response when interface is not found:
 
 `{"jsonrpc":"2.0","error":{"code":-32004,"message":"Failed to retrieve network traffic for wlan3. Interface may not be connected"},"id":1}`
+
+**Retrieve status information for wlan0**
+
+`curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "get_status", "params" : {"iface": "wlan0" }, "id":1 }' 127.0.0.1:5110`
+
+Server response if interface exists:
+
+`{"jsonrpc":"2.0","result":"{\"address\":\"b8:27:eb:9b:5d:5f\",\"bssid\":\"f4:8c:eb:cd:31:81\",\"freq\":\"2412\",\"group_cipher\":\"CCMP\",\"id\":\"0\",\"ip_address\":\"192.168.0.162\",\"key_mgmt\":\"WPA2-PSK\",\"mode\":\"station\",\"pairwise_cipher\":\"CCMP\",\"ssid\":\"Home\",\"wpa_state\":\"COMPLETED\"}","id":1}`
+
+Server response when interface is not found:
+
+`{"jsonrpc":"2.0","error":{"code":-32013,"message":"Failed to open control interface for wpasupplicant: No such file or directory (os error 2)"},"id":1}`
 
 ### Licensing
 
