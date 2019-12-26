@@ -141,20 +141,14 @@ pub fn get_rssi(iface: &str) -> Result<Option<String>, NetworkError> {
         .open()
         .context(WpaCtrlOpen)?;
     let status = wpa.request("SIGNAL_POLL").context(WpaCtrlRequest)?;
-    let re = Regex::new(r"\nAVG_RSSI=(.*)\n").context(Regex)?;
-    let caps = re.captures(&status);
-    let rssi = match caps {
-        Some(caps) => {
-            let sig_strength = &mut caps[0].to_string();
-            let mut sig = sig_strength.split_off(10);
-            let len = sig.len();
-            sig.truncate(len - 1);
-            Some(sig)
-        }
-        None => None,
-    };
-
-    Ok(rssi)
+    let mut status_lines = status.lines();
+    if let Some(rssi_line) = status_lines.next() {
+        // AVG_RSSI fluctuates wildly, use RSSI instead
+        let rssi = rssi_line.to_string().split_off(5);
+        Ok(Some(rssi))
+    } else {
+        return Ok(None);
+    }
 }
 
 // retrieve ssid of connected network
@@ -211,68 +205,62 @@ pub fn get_status(iface: &str) -> Result<Option<IfaceStatus>, NetworkError> {
         .open()
         .context(WpaCtrlOpen)?;
     let status = wpa.request("STATUS").context(WpaCtrlRequest)?;
-    // returns an iterator over the lines in status
+    // returns an iterator over the lines in status response
     let mut status_lines = status.lines();
-    // iterate through lines
-    // check first line and return if None
-    //   -> None indicates no status info available for given interface
-    // if first line is Some, unwrap values and assign variables accordingly
-    if !status_lines.next().is_some() {
+    if let Some(line) = status_lines.next() {
+        let bssid = line;
+        let freq = status_lines
+            .next()
+            .expect("None value unwrap for freq in get_status");
+        let ssid = status_lines
+            .next()
+            .expect("None value unwrap for ssid in get_status");
+        let id = status_lines
+            .next()
+            .expect("None value unwrap for id in get_status");
+        let mode = status_lines
+            .next()
+            .expect("None value unwrap for mode in get_status");
+        let pairwise_cipher = status_lines
+            .next()
+            .expect("None value unwrap for pairwise_cipher in get_status");
+        let group_cipher = status_lines
+            .next()
+            .expect("None value unwrap for group_cipher in get_status");
+        let key_mgmt = status_lines
+            .next()
+            .expect("None value unwrap for key_mgmt in get_status");
+        let wpa_state = status_lines
+            .next()
+            .expect("None value unwrap for wpa_state in get_status");
+        let ip_address = status_lines
+            .next()
+            .expect("None value unwrap for ip_address in get_status");
+        // skip line containing p2p_device_address
+        status_lines.next();
+        let address = status_lines
+            .next()
+            .expect("None value unwrap for address in get_status");
+
+        // assign values to struct fields, splitting after the `=` sign
+        let iface_status = IfaceStatus {
+            address: address.to_string().split_off(8),
+            bssid: bssid.to_string().split_off(6),
+            freq: freq.to_string().split_off(5),
+            group_cipher: group_cipher.to_string().split_off(13),
+            id: id.to_string().split_off(3),
+            ip_address: ip_address.to_string().split_off(11),
+            key_mgmt: key_mgmt.to_string().split_off(9),
+            mode: mode.to_string().split_off(5),
+            pairwise_cipher: pairwise_cipher.to_string().split_off(16),
+            ssid: ssid.to_string().split_off(5),
+            wpa_state: wpa_state.to_string().split_off(10),
+        };
+
+        Ok(Some(iface_status))
+    } else {
         return Ok(None);
     }
-
-    let bssid = status_lines
-        .next()
-        .expect("None value unwrap for bssid in get_status");
-    let freq = status_lines
-        .next()
-        .expect("None value unwrap for freq in get_status");
-    let ssid = status_lines
-        .next()
-        .expect("None value unwrap for ssid in get_status");
-    let id = status_lines
-        .next()
-        .expect("None value unwrap for id in get_status");
-    let mode = status_lines
-        .next()
-        .expect("None value unwrap for mode in get_status");
-    let pairwise_cipher = status_lines
-        .next()
-        .expect("None value unwrap for pairwise_cipher in get_status");
-    let group_cipher = status_lines
-        .next()
-        .expect("None value unwrap for group_cipher in get_status");
-    let key_mgmt = status_lines
-        .next()
-        .expect("None value unwrap for key_mgmt in get_status");
-    let wpa_state = status_lines
-        .next()
-        .expect("None value unwrap for wpa_state in get_status");
-    let ip_address = status_lines
-        .next()
-        .expect("None value unwrap for ip_address in get_status");
-    // skip line containing p2p_device_address
-    status_lines.next();
-    let address = status_lines
-        .next()
-        .expect("None value unwrap for address in get_status");
-
-    // assign values to struct fields, splitting after the `=` sign
-    let iface_status = IfaceStatus {
-        address: address.to_string().split_off(8),
-        bssid: bssid.to_string().split_off(6),
-        freq: freq.to_string().split_off(5),
-        group_cipher: group_cipher.to_string().split_off(13),
-        id: id.to_string().split_off(3),
-        ip_address: ip_address.to_string().split_off(11),
-        key_mgmt: key_mgmt.to_string().split_off(9),
-        mode: mode.to_string().split_off(5),
-        pairwise_cipher: pairwise_cipher.to_string().split_off(16),
-        ssid: ssid.to_string().split_off(5),
-        wpa_state: wpa_state.to_string().split_off(10),
-    };
-
-    Ok(Some(iface_status))
 }
 
 // retrieve network traffic stats for given interface
