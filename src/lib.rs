@@ -160,8 +160,7 @@ pub fn run() -> Result<(), BoxError> {
                 let iface = i.iface;
                 match network::scan_networks(&iface)? {
                     Some(list) => {
-                        let json_ssids = json!(list);
-                        Ok(Value::String(json_ssids.to_string()))
+                        Ok(Value::String(list.to_string()))
                     }
                     None => Err(Error::from(NetworkError::ListScanResults { iface })),
                 }
