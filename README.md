@@ -24,7 +24,7 @@ _Note: This module is a work-in-progress._
 | `if_checker` | | Run AP / client-mode configuration script |
 | `list_networks` | | List all networks saved in wpasupplicant config |
 | `ping` | | Respond with `success` if microservice is running |
-| `scan_networks` | `iface` | List SSIDs of all networks in range of given interface |
+| `scan_networks` | `iface` | List SSID, frequency and signal level for all networks in range of given interface |
 | `reconnect_wifi` | `iface` | Disconnect and reconnect given interface |
 | `reassociate_wifi` | `iface` | Reassociate with current AP for given interface |
 

@@ -17,6 +17,13 @@ pub struct Iface {
 }
 
 #[derive(Debug, Serialize)]
+pub struct Scan {
+    pub frequency: String,
+    pub signal_level: String,
+    pub ssid: String,
+}
+
+#[derive(Debug, Serialize)]
 pub struct Traffic {
     pub received: u64,
     pub transmitted: u64,
@@ -332,7 +339,7 @@ pub fn run_iface_script() -> Result<(), NetworkError> {
 }
 
 // list all wireless networks in range of the given interface
-pub fn scan_networks(iface: &str) -> Result<Option<Vec<String>>, NetworkError> {
+pub fn scan_networks(iface: &str) -> Result<Option<String>, NetworkError> {
     let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
     let mut wpa = wpactrl::WpaCtrl::new()
         .ctrl_path(wpa_path)
@@ -340,19 +347,28 @@ pub fn scan_networks(iface: &str) -> Result<Option<Vec<String>>, NetworkError> {
         .context(WpaCtrlOpen)?;
     wpa.request("SCAN").context(WpaCtrlRequest)?;
     let networks = wpa.request("SCAN_RESULTS").context(WpaCtrlRequest)?;
-    let mut ssids = Vec::new();
+    let mut scan = Vec::new();
     for network in networks.lines() {
         let v: Vec<&str> = network.split('\t').collect();
         let len = v.len();
         if len > 1 {
-            ssids.push(v[4].to_string());
+            let frequency = v[1].to_string();
+            let ssid = v[4].to_string();
+            let signal_level = v[2].to_string();
+            let response = Scan {
+                frequency,
+                signal_level,
+                ssid,
+            };
+            scan.push(response)
         }
     }
-
-    if ssids.is_empty() {
+   
+    if scan.is_empty() {
         Ok(None)
     } else {
-        Ok(Some(ssids))
+        let results = serde_json::to_string(&scan).context(SerdeSerialize)?;
+        Ok(Some(results))
     }
 }
 
