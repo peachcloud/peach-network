@@ -105,6 +105,7 @@ Server response when interface is not found:
 
 `{"jsonrpc":"2.0","error":{"code":-32004,"message":"Failed to retrieve network traffic for wlan3. Interface may not be connected"},"id":1}`
 
+<<<<<<< HEAD
 **Retrieve status information for wlan0**
 
 `curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "get_status", "params" : {"iface": "wlan0" }, "id":1 }' 127.0.0.1:5110`
@@ -116,6 +117,11 @@ Server response if interface exists:
 Server response when interface is not found:
 
 `{"jsonrpc":"2.0","error":{"code":-32013,"message":"Failed to open control interface for wpasupplicant: No such file or directory (os error 2)"},"id":1}`
+=======
+### Known Bugs
+
+The `get_rssi` RPC fails to retrieve signal strength.
+>>>>>>> b5a250444da93fe6f51b2b45f2ad000915e97070
 
 ### Licensing
 
