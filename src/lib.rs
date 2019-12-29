@@ -159,9 +159,7 @@ pub fn run() -> Result<(), BoxError> {
             Ok(i) => {
                 let iface = i.iface;
                 match network::scan_networks(&iface)? {
-                    Some(list) => {
-                        Ok(Value::String(list.to_string()))
-                    }
+                    Some(list) => Ok(Value::String(list)),
                     None => Err(Error::from(NetworkError::ListScanResults { iface })),
                 }
             }

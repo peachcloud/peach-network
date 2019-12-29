@@ -154,7 +154,7 @@ pub fn get_rssi(iface: &str) -> Result<Option<String>, NetworkError> {
         let rssi = rssi_line.to_string().split_off(5);
         Ok(Some(rssi))
     } else {
-        return Ok(None);
+        Ok(None)
     }
 }
 
@@ -266,7 +266,7 @@ pub fn get_status(iface: &str) -> Result<Option<IfaceStatus>, NetworkError> {
 
         Ok(Some(iface_status))
     } else {
-        return Ok(None);
+        Ok(None)
     }
 }
 
@@ -363,7 +363,7 @@ pub fn scan_networks(iface: &str) -> Result<Option<String>, NetworkError> {
             scan.push(response)
         }
     }
-   
+
     if scan.is_empty() {
         Ok(None)
     } else {
@@ -371,8 +371,3 @@ pub fn scan_networks(iface: &str) -> Result<Option<String>, NetworkError> {
         Ok(Some(results))
     }
 }
-
-/*
- * Further functions to be implemented:
- *  - remove_network
- */
