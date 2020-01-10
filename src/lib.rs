@@ -9,8 +9,8 @@ mod network;
 use std::env;
 use std::result::Result;
 
-use jsonrpc_core::{types::error::Error, *};
-use jsonrpc_http_server::*;
+use jsonrpc_core::{types::error::Error, IoHandler, Params, Value};
+use jsonrpc_http_server::{AccessControlAllowOrigin, DomainsValidation, ServerBuilder};
 #[allow(unused_imports)]
 use jsonrpc_test as test;
 use serde_json::json;
