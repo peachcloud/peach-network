@@ -305,7 +305,7 @@ pub fn list_networks() -> Result<Option<String>, NetworkError> {
         let v: Vec<&str> = network.split('\t').collect();
         let len = v.len();
         if len > 1 {
-            let ssid = v[1].to_string();
+            let ssid = v[1].trim().to_string();
             let response = Networks { ssid };
             ssids.push(response)
         }

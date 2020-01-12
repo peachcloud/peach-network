@@ -143,10 +143,7 @@ pub fn run() -> Result<(), BoxError> {
     io.add_method("list_networks", move |_| {
         let list = network::list_networks()?;
         match list {
-            Some(list) => {
-                let json_ssids = json!(list);
-                Ok(Value::String(json_ssids.to_string()))
-            }
+            Some(list) => Ok(Value::String(list)),
             None => Err(Error::from(NetworkError::ListSavedNetworks)),
         }
     });
