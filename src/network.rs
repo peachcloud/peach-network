@@ -21,7 +21,7 @@ pub struct Scan {
     pub frequency: String,
     pub signal_level: String,
     pub ssid: String,
-    pub flags: String,
+    pub protocol: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -356,11 +356,16 @@ pub fn scan_networks(iface: &str) -> Result<Option<String>, NetworkError> {
             let frequency = v[1].to_string();
             let signal_level = v[2].to_string();
             let flags = v[3].to_string();
+            let flags_vec: Vec<&str> = flags.split("][").collect();
+            let mut protocol = Vec::new();
+            if flags_vec[0] != "[ESS]" {
+                protocol.push(flags_vec[0].replace("[", "").replace("]", ""));
+            }
             let ssid = v[4].to_string();
             let response = Scan {
                 frequency,
                 signal_level,
-                flags,
+                protocol,
                 ssid,
             };
             scan.push(response)
