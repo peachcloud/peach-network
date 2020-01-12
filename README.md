@@ -24,7 +24,7 @@ _Note: This module is a work-in-progress._
 | `if_checker` | | Run AP / client-mode configuration script |
 | `list_networks` | | List all networks saved in wpasupplicant config |
 | `ping` | | Respond with `success` if microservice is running |
-| `scan_networks` | `iface` | List SSID, frequency and signal level for all networks in range of given interface |
+| `scan_networks` | `iface` | List SSID, flags (security), frequency and signal level for all networks in range of given interface |
 | `reconnect_wifi` | `iface` | Disconnect and reconnect given interface |
 | `reassociate_wifi` | `iface` | Reassociate with current AP for given interface |
 
@@ -87,7 +87,7 @@ Server response when interface is not connected:
 
 Server response when interface is connected:
 
-`{"jsonrpc":"2.0","result":"[\"Home\",\"TP-LINK_254700\"]","id":1}`
+`{"jsonrpc":"2.0","result":"[{\"frequency\":\"2412\",\"signal_level\":\"-72\",\"ssid\":\"Home\",\"flags\":\"[WPA2-PSK-CCMP][ESS]\"},{\"frequency\":\"2472\",\"signal_level\":\"-56\",\"ssid\":\"podetium\",\"flags\":\"[WPA2-PSK-CCMP+TKIP][ESS]\"}]","id":1}`
 
 Server response when interface is not connected:
 
@@ -105,7 +105,6 @@ Server response when interface is not found:
 
 `{"jsonrpc":"2.0","error":{"code":-32004,"message":"Failed to retrieve network traffic for wlan3. Interface may not be connected"},"id":1}`
 
-<<<<<<< HEAD
 **Retrieve status information for wlan0**
 
 `curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "get_status", "params" : {"iface": "wlan0" }, "id":1 }' 127.0.0.1:5110`
@@ -117,11 +116,10 @@ Server response if interface exists:
 Server response when interface is not found:
 
 `{"jsonrpc":"2.0","error":{"code":-32013,"message":"Failed to open control interface for wpasupplicant: No such file or directory (os error 2)"},"id":1}`
-=======
+
 ### Known Bugs
 
 The `get_rssi` RPC fails to retrieve signal strength.
->>>>>>> b5a250444da93fe6f51b2b45f2ad000915e97070
 
 ### Licensing
 

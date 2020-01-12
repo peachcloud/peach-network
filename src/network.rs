@@ -21,6 +21,7 @@ pub struct Scan {
     pub frequency: String,
     pub signal_level: String,
     pub ssid: String,
+    pub flags: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -353,11 +354,13 @@ pub fn scan_networks(iface: &str) -> Result<Option<String>, NetworkError> {
         let len = v.len();
         if len > 1 {
             let frequency = v[1].to_string();
-            let ssid = v[4].to_string();
             let signal_level = v[2].to_string();
+            let flags = v[3].to_string();
+            let ssid = v[4].to_string();
             let response = Scan {
                 frequency,
                 signal_level,
+                flags,
                 ssid,
             };
             scan.push(response)
