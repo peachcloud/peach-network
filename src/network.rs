@@ -364,8 +364,8 @@ pub fn scan_networks(iface: &str) -> Result<Option<String>, NetworkError> {
             let ssid = v[4].to_string();
             let response = Scan {
                 frequency,
-                signal_level,
                 protocol,
+                signal_level,
                 ssid,
             };
             scan.push(response)
