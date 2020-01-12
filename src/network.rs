@@ -21,7 +21,7 @@ pub struct Scan {
     pub frequency: String,
     pub signal_level: String,
     pub ssid: String,
-    pub protocol: Vec<String>,
+    pub protocol: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -357,9 +357,12 @@ pub fn scan_networks(iface: &str) -> Result<Option<String>, NetworkError> {
             let signal_level = v[2].to_string();
             let flags = v[3].to_string();
             let flags_vec: Vec<&str> = flags.split("][").collect();
-            let mut protocol = Vec::new();
+            let mut protocol = String::new();
+            // an open access point (no auth) will only have [ESS] in flags
+            // we only want to return the auth / crypto flags
             if flags_vec[0] != "[ESS]" {
-                protocol.push(flags_vec[0].replace("[", "").replace("]", ""));
+                // parse auth / crypto flag and assign it to protocol
+                protocol.push_str(flags_vec[0].replace("[", "").replace("]", "").as_str());
             }
             let ssid = v[4].to_string();
             let response = Scan {
