@@ -17,6 +17,11 @@ pub struct Iface {
 }
 
 #[derive(Debug, Serialize)]
+pub struct Networks {
+    pub ssid: String,
+}
+
+#[derive(Debug, Serialize)]
 pub struct Scan {
     pub frequency: String,
     pub signal_level: String,
@@ -292,7 +297,7 @@ pub fn get_traffic(iface: &str) -> Result<Option<String>, NetworkError> {
 }
 
 // list all wireless networks saved to the wpasupplicant config
-pub fn list_networks() -> Result<Option<Vec<String>>, NetworkError> {
+pub fn list_networks() -> Result<Option<String>, NetworkError> {
     let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
     let networks = wpa.request("LIST_NETWORKS").context(WpaCtrlRequest)?;
     let mut ssids = Vec::new();
@@ -300,10 +305,18 @@ pub fn list_networks() -> Result<Option<Vec<String>>, NetworkError> {
         let v: Vec<&str> = network.split('\t').collect();
         let len = v.len();
         if len > 1 {
-            ssids.push(v[1].to_string());
+            let ssid = v[1].to_string();
+            let response = Networks { ssid };
+            ssids.push(response)
         }
     }
-    Ok(Some(ssids))
+
+    if ssids.is_empty() {
+        Ok(None)
+    } else {
+        let results = serde_json::to_string(&ssids).context(SerdeSerialize)?;
+        Ok(Some(results))
+    }
 }
 
 // reassociate the wireless interface
