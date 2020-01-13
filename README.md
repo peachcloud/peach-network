@@ -117,10 +117,6 @@ Server response when interface is not found:
 
 `{"jsonrpc":"2.0","error":{"code":-32013,"message":"Failed to open control interface for wpasupplicant: No such file or directory (os error 2)"},"id":1}`
 
-### Known Bugs
-
-The `get_rssi` RPC fails to retrieve signal strength.
-
 ### Licensing
 
 AGPL-3.0
