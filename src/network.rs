@@ -2,7 +2,13 @@ extern crate get_if_addrs;
 extern crate regex;
 extern crate wpactrl;
 
-use std::{process::Command, result::Result, str};
+use std::{
+    fs::OpenOptions,
+    io::prelude::*,
+    process::{Command, Stdio},
+    result::Result,
+    str,
+};
 
 use probes::network;
 use regex::Regex;
@@ -118,19 +124,34 @@ pub fn activate_client() -> Result<(), NetworkError> {
 
 // add network and save configuration for given ssid and password
 pub fn add_wifi(wifi: &WiFi) -> Result<(), NetworkError> {
-    let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
-    let mut net_id = wpa.request("ADD_NETWORK").context(WpaCtrlRequest)?;
-    let len = net_id.len();
-    // remove newline character
-    net_id.truncate(len - 1);
-    let ssid_cmd = format!("SET_NETWORK {} ssid \"{}\"", net_id, &wifi.ssid);
-    wpa.request(&ssid_cmd).context(WpaCtrlRequest)?;
-    let psk_cmd = format!("SET_NETWORK {} psk \"{}\"", net_id, &wifi.pass);
-    wpa.request(&psk_cmd).context(WpaCtrlRequest)?;
-    let en_cmd = format!("ENABLE_NETWORK {}", net_id);
-    wpa.request(&en_cmd).context(WpaCtrlRequest)?;
-    wpa.request("SET update_config 1").context(WpaCtrlRequest)?;
-    wpa.request("SAVE_CONFIG").context(WpaCtrlRequest)?;
+    // generate configuration based on provided ssid & password
+    let output = Command::new("wpa_passphrase")
+        .arg(&wifi.ssid)
+        .arg(&wifi.pass)
+        .stdout(Stdio::piped())
+        .output()
+        // TODO: Add a proper snafu error in `error.rs` & handle with Context
+        .unwrap_or_else(|e| panic!("Failed to execute wpa_passphrase command: {}", e));
+
+    let wpa_details = &*(output.stdout);
+
+    // append wpa_passphrase output to wpa_supplicant.conf if successful
+    if output.status.success() {
+        // open file in append mode
+        let file = OpenOptions::new()
+            .append(true)
+            .open("/etc/wpa_supplicant/wpa_supplicant.conf");
+
+        let _file = match file {
+            // if file exists & open succeeds, write wifi configuration
+            Ok(mut f) => f.write(wpa_details),
+            // TODO: handle this better: create file if not found
+            //  & seed with 'ctrl_interace' & 'update_config' settings
+            //  config file could also be copied from peach/config fs location
+            Err(_) => panic!("There was a problem appending to the file"),
+        };
+    }
+
     Ok(())
 }
 
