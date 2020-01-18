@@ -280,6 +280,29 @@ mod tests {
         );
     }
 
+    // test to ensure correct genwpapassphrase error response
+    #[test]
+    fn rpc_genwpapassphrase_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_genwpapassphrase_error", |_| {
+                Err(Error::from(NetworkError::GenWpaPassphrase {
+                    ssid: "HomeWifi".to_string(),
+                    source: IoError::new(ErrorKind::NotFound, "oh no!"),
+                }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_genwpapassphrase_error", &()),
+            r#"{
+  "code": -32025,
+  "message": "Failed to generate wpa passphrase for HomeWifi: oh no!"
+}"#
+        );
+    }
+
     // test to ensure correct getip error response
     #[test]
     fn rpc_getip_error() {

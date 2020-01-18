@@ -16,6 +16,9 @@ pub enum NetworkError {
     #[snafu(display("Failed to retrieve state for interface: {}", iface))]
     CatIfaceState { iface: String, source: io::Error },
 
+    #[snafu(display("Failed to generate wpa passphrase for {}: {}", ssid, source))]
+    GenWpaPassphrase { ssid: String, source: io::Error },
+
     #[snafu(display("Could not access IP address for interface: {}", iface))]
     GetIp { iface: String, source: io::Error },
 
@@ -116,6 +119,11 @@ impl From<NetworkError> for Error {
                     "Failed to retrieve interface state for {}: {}",
                     iface, source
                 ),
+                data: None,
+            },
+            NetworkError::GenWpaPassphrase { ssid, source } => Error {
+                code: ErrorCode::ServerError(-32025),
+                message: format!("Failed to generate wpa passphrase for {}: {}", ssid, source),
                 data: None,
             },
             NetworkError::GetIp { iface, source } => Error {

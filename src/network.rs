@@ -130,8 +130,7 @@ pub fn add_wifi(wifi: &WiFi) -> Result<(), NetworkError> {
         .arg(&wifi.pass)
         .stdout(Stdio::piped())
         .output()
-        // TODO: Add a proper snafu error in `error.rs` & handle with Context
-        .unwrap_or_else(|e| panic!("Failed to execute wpa_passphrase command: {}", e));
+        .context(GenWpaPassphrase { ssid: &wifi.ssid })?;
 
     let wpa_details = &*(output.stdout);
 
