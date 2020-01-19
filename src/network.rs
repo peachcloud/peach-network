@@ -23,6 +23,12 @@ pub struct Iface {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct IfaceId {
+    pub iface: String,
+    pub id: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct IfaceSsid {
     pub iface: String,
     pub ssid: String,
@@ -445,4 +451,16 @@ pub fn scan_networks(iface: &str) -> Result<Option<String>, NetworkError> {
         let results = serde_json::to_string(&scan).context(SerdeSerialize)?;
         Ok(Some(results))
     }
+}
+
+// attempt connection with AP represented by given network id
+pub fn select_network(id: &str, iface: &str) -> Result<(), NetworkError> {
+    let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
+    let mut wpa = wpactrl::WpaCtrl::new()
+        .ctrl_path(wpa_path)
+        .open()
+        .context(WpaCtrlOpen)?;
+    let select = format!("SELECT {}", id);
+    wpa.request(&select).context(WpaCtrlRequest)?;
+    Ok(())
 }

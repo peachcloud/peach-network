@@ -71,6 +71,9 @@ pub enum NetworkError {
     #[snafu(display("Failed to run interface_checker script: {}", source))]
     RunApClientScript { source: io::Error },
 
+    #[snafu(display("Failed to select network {} for interface: {}", id, iface))]
+    SelectNetwork { id: String, iface: String },
+
     #[snafu(display("JSON serialization failed: {}", source))]
     SerdeSerialize { source: SerdeError },
 
@@ -215,6 +218,11 @@ impl From<NetworkError> for Error {
             NetworkError::RunApClientScript { source } => Error {
                 code: ErrorCode::ServerError(-32011),
                 message: format!("Failed to run interface_checker script: {}", source),
+                data: None,
+            },
+            NetworkError::SelectNetwork { id, iface } => Error {
+                code: ErrorCode::ServerError(-32027),
+                message: format!("Failed to select network {} for {}", id, iface),
                 data: None,
             },
             NetworkError::SerdeSerialize { source } => Error {

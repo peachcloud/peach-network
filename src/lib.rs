@@ -16,7 +16,7 @@ use jsonrpc_test as test;
 use serde_json::json;
 
 use crate::error::{BoxError, NetworkError};
-use crate::network::{Iface, IfaceSsid, WiFi};
+use crate::network::{Iface, IfaceId, IfaceSsid, WiFi};
 
 pub fn run() -> Result<(), BoxError> {
     info!("Starting up.");
@@ -173,6 +173,21 @@ pub fn run() -> Result<(), BoxError> {
                 match network::scan_networks(&iface)? {
                     Some(list) => Ok(Value::String(list)),
                     None => Err(Error::from(NetworkError::ListScanResults { iface })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
+
+    io.add_method("select_network", move |params: Params| {
+        let i: Result<IfaceId, Error> = params.parse();
+        match i {
+            Ok(i) => {
+                let id = i.id;
+                let iface = i.iface;
+                match network::select_network(&id, &iface) {
+                    Ok(_) => Ok(Value::String("success".to_string())),
+                    Err(_) => Err(Error::from(NetworkError::SelectNetwork { id, iface })),
                 }
             }
             Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
@@ -561,6 +576,29 @@ mod tests {
             r#"{
   "code": -32008,
   "message": "Failed to reassociate with WiFi network for wlan0"
+}"#
+        );
+    }
+
+    // test to ensure correct select_network error response
+    #[test]
+    fn rpc_selectnetwork_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_selectnetwork_error", |_| {
+                Err(Error::from(NetworkError::SelectNetwork {
+                    id: "0".to_string(),
+                    iface: "wlan0".to_string(),
+                }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_selectnetwork_error", &()),
+            r#"{
+  "code": -32027,
+  "message": "Failed to select network 0 for wlan0"
 }"#
         );
     }
