@@ -27,8 +27,9 @@ _Note: This module is a work-in-progress._
 | `ping` | | Respond with `success` if microservice is running |
 | `reassociate_wifi` | `iface` | Reassociate with current AP for given interface |
 | `reconnect_wifi` | `iface` | Disconnect and reconnect given interface |
+| `remove_wifi` | `id`, `iface` | Remove WiFi credentials for given network id and interface |
 | `scan_networks` | `iface` | List SSID, flags (security), frequency and signal level for all networks in range of given interface |
-| `select_network` | `id` | Disable other networks and attempt connection with AP represented by given id |
+| `select_network` | `id`, `iface` | Disable other networks and attempt connection with AP represented by given id |
 
 ### Environment
 

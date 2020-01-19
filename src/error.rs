@@ -68,6 +68,9 @@ pub enum NetworkError {
     #[snafu(display("Regex command failed"))]
     Regex { source: regex::Error },
 
+    #[snafu(display("Failed to remove network {} for interface: {}", id, iface))]
+    RemoveWifi { id: String, iface: String },
+
     #[snafu(display("Failed to run interface_checker script: {}", source))]
     RunApClientScript { source: io::Error },
 
@@ -213,6 +216,11 @@ impl From<NetworkError> for Error {
             NetworkError::Regex { source } => Error {
                 code: ErrorCode::ServerError(-32010),
                 message: format!("Regex command error: {}", source),
+                data: None,
+            },
+            NetworkError::RemoveWifi { id, iface } => Error {
+                code: ErrorCode::ServerError(-32028),
+                message: format!("Failed to remove network {} for {}", id, iface),
                 data: None,
             },
             NetworkError::RunApClientScript { source } => Error {

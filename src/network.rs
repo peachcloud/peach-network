@@ -399,6 +399,18 @@ pub fn reconnect_wifi(iface: &str) -> Result<(), NetworkError> {
     Ok(())
 }
 
+// remove wifi credentials for given network id and interface
+pub fn remove_wifi(id: &str, iface: &str) -> Result<(), NetworkError> {
+    let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
+    let mut wpa = wpactrl::WpaCtrl::new()
+        .ctrl_path(wpa_path)
+        .open()
+        .context(WpaCtrlOpen)?;
+    let remove = format!("REMOVE_NETWORK {}", id);
+    wpa.request(&remove).context(WpaCtrlRequest)?;
+    Ok(())
+}
+
 // run the interface checker script for ap-client mode switching
 pub fn run_iface_script() -> Result<(), NetworkError> {
     Command::new("sudo")

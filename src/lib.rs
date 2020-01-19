@@ -165,6 +165,49 @@ pub fn run() -> Result<(), BoxError> {
 
     io.add_method("ping", |_: Params| Ok(Value::String("success".to_string())));
 
+    io.add_method("reassociate_wifi", move |params: Params| {
+        let i: Result<Iface, Error> = params.parse();
+        match i {
+            Ok(i) => {
+                let iface = i.iface;
+                match network::reassociate_wifi(&iface) {
+                    Ok(_) => Ok(Value::String("success".to_string())),
+                    Err(_) => Err(Error::from(NetworkError::Reassociate { iface })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
+
+    io.add_method("reconnect_wifi", move |params: Params| {
+        let i: Result<Iface, Error> = params.parse();
+        match i {
+            Ok(i) => {
+                let iface = i.iface;
+                match network::reconnect_wifi(&iface) {
+                    Ok(_) => Ok(Value::String("success".to_string())),
+                    Err(_) => Err(Error::from(NetworkError::Reconnect { iface })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
+
+    io.add_method("remove_wifi", move |params: Params| {
+        let i: Result<IfaceId, Error> = params.parse();
+        match i {
+            Ok(i) => {
+                let id = i.id;
+                let iface = i.iface;
+                match network::remove_wifi(&id, &iface) {
+                    Ok(_) => Ok(Value::String("success".to_string())),
+                    Err(_) => Err(Error::from(NetworkError::RemoveWifi { id, iface })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
+
     io.add_method("scan_networks", move |params: Params| {
         let i: Result<Iface, Error> = params.parse();
         match i {
@@ -188,34 +231,6 @@ pub fn run() -> Result<(), BoxError> {
                 match network::select_network(&id, &iface) {
                     Ok(_) => Ok(Value::String("success".to_string())),
                     Err(_) => Err(Error::from(NetworkError::SelectNetwork { id, iface })),
-                }
-            }
-            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
-        }
-    });
-
-    io.add_method("reassociate_wifi", move |params: Params| {
-        let i: Result<Iface, Error> = params.parse();
-        match i {
-            Ok(i) => {
-                let iface = i.iface;
-                match network::reassociate_wifi(&iface) {
-                    Ok(_) => Ok(Value::String("success".to_string())),
-                    Err(_) => Err(Error::from(NetworkError::Reassociate { iface })),
-                }
-            }
-            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
-        }
-    });
-
-    io.add_method("reconnect_wifi", move |params: Params| {
-        let i: Result<Iface, Error> = params.parse();
-        match i {
-            Ok(i) => {
-                let iface = i.iface;
-                match network::reconnect_wifi(&iface) {
-                    Ok(_) => Ok(Value::String("success".to_string())),
-                    Err(_) => Err(Error::from(NetworkError::Reconnect { iface })),
                 }
             }
             Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
@@ -642,6 +657,29 @@ mod tests {
             r#"{
   "code": -32010,
   "message": "Regex command error: oh no!"
+}"#
+        );
+    }
+
+    // test to ensure correct remove_network error response
+    #[test]
+    fn rpc_removenetwork_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_removenetwork_error", |_| {
+                Err(Error::from(NetworkError::RemoveWifi {
+                    id: "0".to_string(),
+                    iface: "wlan0".to_string(),
+                }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_removenetwork_error", &()),
+            r#"{
+  "code": -32028,
+  "message": "Failed to remove network 0 for wlan0"
 }"#
         );
     }
