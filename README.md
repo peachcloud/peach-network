@@ -27,6 +27,7 @@ _Note: This module is a work-in-progress._
 | `list_networks` | | List all networks saved in wpasupplicant config |
 | `ping` | | Respond with `success` if microservice is running |
 | `reassociate_wifi` | `iface` | Reassociate with current AP for given interface |
+| `reconfigure_wifi` | `iface` | Force wpa_supplicant to re-read its configuration file |
 | `reconnect_wifi` | `iface` | Disconnect and reconnect given interface |
 | `remove_wifi` | `id`, `iface` | Remove WiFi credentials for given network id and interface |
 | `scan_networks` | `iface` | List SSID, flags (security), frequency and signal level for all networks in range of given interface |
