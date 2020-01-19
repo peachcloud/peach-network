@@ -16,7 +16,7 @@ use jsonrpc_test as test;
 use serde_json::json;
 
 use crate::error::{BoxError, NetworkError};
-use crate::network::{Iface, WiFi};
+use crate::network::{Iface, IfaceSsid, WiFi};
 
 pub fn run() -> Result<(), BoxError> {
     info!("Starting up.");
@@ -43,6 +43,21 @@ pub fn run() -> Result<(), BoxError> {
                 Ok(_) => Ok(Value::String("success".to_string())),
                 Err(_) => Err(Error::from(NetworkError::AddWifi { ssid: w.ssid })),
             },
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
+
+    io.add_method("get_id", move |params: Params| {
+        let i: Result<IfaceSsid, Error> = params.parse();
+        match i {
+            Ok(i) => {
+                let iface = i.iface;
+                let ssid = i.ssid;
+                match network::get_id(&iface, &ssid)? {
+                    Some(id) => Ok(Value::String(id)),
+                    None => Err(Error::from(NetworkError::GetId { iface, ssid })),
+                }
+            }
             Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
         }
     });
@@ -299,6 +314,29 @@ mod tests {
             r#"{
   "code": -32025,
   "message": "Failed to generate wpa passphrase for HomeWifi: oh no!"
+}"#
+        );
+    }
+
+    // test to ensure correct getid error response
+    #[test]
+    fn rpc_getid_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_getid_error", |_| {
+                Err(Error::from(NetworkError::GetId {
+                    iface: "wlan0".to_string(),
+                    ssid: "Home".to_string(),
+                }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_getid_error", &()),
+            r#"{
+  "code": -32026,
+  "message": "No ID found for Home on interface wlan0"
 }"#
         );
     }

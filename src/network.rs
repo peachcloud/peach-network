@@ -22,6 +22,12 @@ pub struct Iface {
     pub iface: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct IfaceSsid {
+    pub iface: String,
+    pub ssid: String,
+}
+
 #[derive(Debug, Serialize)]
 pub struct Networks {
     pub ssid: String,
@@ -152,6 +158,31 @@ pub fn add_wifi(wifi: &WiFi) -> Result<(), NetworkError> {
     }
 
     Ok(())
+}
+
+// retrieve network id for specified ssid & interface
+pub fn get_id(iface: &str, ssid: &str) -> Result<Option<String>, NetworkError> {
+    let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
+    let mut wpa = wpactrl::WpaCtrl::new()
+        .ctrl_path(wpa_path)
+        .open()
+        .context(WpaCtrlOpen)?;
+    let networks = wpa.request("LIST_NETWORKS").context(WpaCtrlRequest)?;
+    let mut id = Vec::new();
+    for network in networks.lines() {
+        let v: Vec<&str> = network.split('\t').collect();
+        let len = v.len();
+        if len > 1 && v[1] == ssid {
+            id.push(v[0].trim())
+        }
+    }
+
+    if id.is_empty() {
+        Ok(None)
+    } else {
+        let network_id: String = id[0].to_string();
+        Ok(Some(network_id))
+    }
 }
 
 // retrieve ip address for specified interface
