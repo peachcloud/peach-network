@@ -47,6 +47,21 @@ pub fn run() -> Result<(), BoxError> {
         }
     });
 
+    io.add_method("disable_wifi", move |params: Params| {
+        let i: Result<IfaceId, Error> = params.parse();
+        match i {
+            Ok(i) => {
+                let id = i.id;
+                let iface = i.iface;
+                match network::disable_wifi(&id, &iface) {
+                    Ok(_) => Ok(Value::String("success".to_string())),
+                    Err(_) => Err(Error::from(NetworkError::DisableWifi { id, iface })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
+
     io.add_method("get_id", move |params: Params| {
         let i: Result<IfaceSsid, Error> = params.parse();
         match i {
@@ -321,6 +336,29 @@ mod tests {
             r#"{
   "code": -32000,
   "message": "Failed to add network for Home"
+}"#
+        );
+    }
+
+    // test to ensure correct disable_wifi error response
+    #[test]
+    fn rpc_disablewifi_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_disablewifi_error", |_| {
+                Err(Error::from(NetworkError::DisableWifi {
+                    id: "0".to_string(),
+                    iface: "wlan0".to_string(),
+                }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_disablewifi_error", &()),
+            r#"{
+  "code": -32029,
+  "message": "Failed to disable network 0 for wlan0"
 }"#
         );
     }

@@ -16,6 +16,9 @@ pub enum NetworkError {
     #[snafu(display("Failed to retrieve state for interface: {}", iface))]
     CatIfaceState { iface: String, source: io::Error },
 
+    #[snafu(display("Failed to disable network {} for interface: {}", id, iface))]
+    DisableWifi { id: String, iface: String },
+
     #[snafu(display("Failed to generate wpa passphrase for {}: {}", ssid, source))]
     GenWpaPassphrase { ssid: String, source: io::Error },
 
@@ -128,6 +131,11 @@ impl From<NetworkError> for Error {
                     "Failed to retrieve interface state for {}: {}",
                     iface, source
                 ),
+                data: None,
+            },
+            NetworkError::DisableWifi { id, iface } => Error {
+                code: ErrorCode::ServerError(-32029),
+                message: format!("Failed to disable network {} for {}", id, iface),
                 data: None,
             },
             NetworkError::GenWpaPassphrase { ssid, source } => Error {

@@ -166,6 +166,18 @@ pub fn add_wifi(wifi: &WiFi) -> Result<(), NetworkError> {
     Ok(())
 }
 
+// disable wifi network for given network id and interface
+pub fn disable_wifi(id: &str, iface: &str) -> Result<(), NetworkError> {
+    let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
+    let mut wpa = wpactrl::WpaCtrl::new()
+        .ctrl_path(wpa_path)
+        .open()
+        .context(WpaCtrlOpen)?;
+    let disable = format!("DISABLE_NETWORK {}", id);
+    wpa.request(&disable).context(WpaCtrlRequest)?;
+    Ok(())
+}
+
 // retrieve network id for specified ssid & interface
 pub fn get_id(iface: &str, ssid: &str) -> Result<Option<String>, NetworkError> {
     let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
