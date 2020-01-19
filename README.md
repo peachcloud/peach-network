@@ -30,6 +30,7 @@ _Note: This module is a work-in-progress._
 | `reconfigure_wifi` | `iface` | Force wpa_supplicant to re-read its configuration file |
 | `reconnect_wifi` | `iface` | Disconnect and reconnect given interface |
 | `remove_wifi` | `id`, `iface` | Remove WiFi credentials for given network id and interface |
+| `save_config` | | Save configuration changes to `wpa_supplicant.conf` |
 | `scan_networks` | `iface` | List SSID, flags (security), frequency and signal level for all networks in range of given interface |
 | `select_network` | `id`, `iface` | Disable other networks and attempt connection with AP represented by given id |
 

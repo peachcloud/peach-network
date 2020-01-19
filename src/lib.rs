@@ -237,6 +237,11 @@ pub fn run() -> Result<(), BoxError> {
         }
     });
 
+    io.add_method("save_config", move |_| match network::save_config() {
+        Ok(_) => Ok(Value::String("success".to_string())),
+        Err(_) => Err(Error::from(NetworkError::SaveConfig)),
+    });
+
     io.add_method("scan_networks", move |params: Params| {
         let i: Result<Iface, Error> = params.parse();
         match i {
@@ -775,6 +780,26 @@ mod tests {
             r#"{
   "code": -32011,
   "message": "Failed to run interface_checker script: oh no!"
+}"#
+        );
+    }
+
+    // test to ensure correct save_config error response
+    #[test]
+    fn rpc_saveconfig_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_saveconfig", |_| {
+                Err(Error::from(NetworkError::SaveConfig))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_saveconfig", &()),
+            r#"{
+  "code": -32031,
+  "message": "Failed to save configuration changes to file"
 }"#
         );
     }

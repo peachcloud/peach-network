@@ -444,6 +444,13 @@ pub fn run_iface_script() -> Result<(), NetworkError> {
     Ok(())
 }
 
+// save configuration updates to wpa_supplicant config file
+pub fn save_config() -> Result<(), NetworkError> {
+    let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
+    wpa.request("SAVE_CONFIG").context(WpaCtrlRequest)?;
+    Ok(())
+}
+
 // list all wireless networks in range of the given interface
 pub fn scan_networks(iface: &str) -> Result<Option<String>, NetworkError> {
     let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);

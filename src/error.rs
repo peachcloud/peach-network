@@ -65,7 +65,10 @@ pub enum NetworkError {
     #[snafu(display("Failed to reassociate with WiFi network for interface: {}", iface))]
     Reassociate { iface: String },
 
-    #[snafu(display("Failed to force reread of wpa_supplicant configuration file for interface: {}", iface))]
+    #[snafu(display(
+        "Failed to force reread of wpa_supplicant configuration file for interface: {}",
+        iface
+    ))]
     Reconfigure { iface: String },
 
     #[snafu(display("Failed to reconnect with WiFi network for interface: {}", iface))]
@@ -79,6 +82,9 @@ pub enum NetworkError {
 
     #[snafu(display("Failed to run interface_checker script: {}", source))]
     RunApClientScript { source: io::Error },
+
+    #[snafu(display("Failed to save configuration changes to file"))]
+    SaveConfig,
 
     #[snafu(display("Failed to select network {} for interface: {}", id, iface))]
     SelectNetwork { id: String, iface: String },
@@ -221,7 +227,10 @@ impl From<NetworkError> for Error {
             },
             NetworkError::Reconfigure { iface } => Error {
                 code: ErrorCode::ServerError(-32030),
-                message: format!("Failed to force reread of wpa_supplicant configuration file for {}", iface),
+                message: format!(
+                    "Failed to force reread of wpa_supplicant configuration file for {}",
+                    iface
+                ),
                 data: None,
             },
             NetworkError::Reconnect { iface } => Error {
@@ -242,6 +251,11 @@ impl From<NetworkError> for Error {
             NetworkError::RunApClientScript { source } => Error {
                 code: ErrorCode::ServerError(-32011),
                 message: format!("Failed to run interface_checker script: {}", source),
+                data: None,
+            },
+            NetworkError::SaveConfig => Error {
+                code: ErrorCode::ServerError(-32031),
+                message: "Failed to save configuration changes to file".to_string(),
                 data: None,
             },
             NetworkError::SelectNetwork { id, iface } => Error {
