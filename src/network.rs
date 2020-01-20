@@ -178,6 +178,18 @@ pub fn disable_wifi(id: &str, iface: &str) -> Result<(), NetworkError> {
     Ok(())
 }
 
+// disconnect wifi network for given network interface
+pub fn disconnect_wifi(iface: &str) -> Result<(), NetworkError> {
+    let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
+    let mut wpa = wpactrl::WpaCtrl::new()
+        .ctrl_path(wpa_path)
+        .open()
+        .context(WpaCtrlOpen)?;
+    let disconnect = "DISCONNECT".to_string();
+    wpa.request(&disconnect).context(WpaCtrlRequest)?;
+    Ok(())
+}
+
 // retrieve network id for specified ssid & interface
 pub fn get_id(iface: &str, ssid: &str) -> Result<Option<String>, NetworkError> {
     let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);

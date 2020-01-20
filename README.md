@@ -16,6 +16,7 @@ _Note: This module is a work-in-progress._
 | `activate_client` | | Activate WiFi client connection (stop `hostapd` and `dnsmasq` and start `wpa_supplicant`) |
 | `add_wifi` | `ssid`, `pass` | Add WiFi credentials to `wpa_supplicant.conf` |
 | `disable_wifi` | `id`, `iface` | Disable connection with AP represented by given id |
+| `disconnect_wifi` | `iface` | Disconnect given interface |
 | `get_id` | `iface`, `ssid` | Return ID of given SSID |
 | `get_ip` | `iface` | Return IP of given network interface |
 | `get_rssi` | `iface` | Return average signal strength for given interface |

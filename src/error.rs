@@ -19,6 +19,9 @@ pub enum NetworkError {
     #[snafu(display("Failed to disable network {} for interface: {}", id, iface))]
     DisableWifi { id: String, iface: String },
 
+    #[snafu(display("Failed to disconnect {}", iface))]
+    DisconnectWifi { iface: String },
+
     #[snafu(display("Failed to generate wpa passphrase for {}: {}", ssid, source))]
     GenWpaPassphrase { ssid: String, source: io::Error },
 
@@ -65,9 +68,7 @@ pub enum NetworkError {
     #[snafu(display("Failed to reassociate with WiFi network for interface: {}", iface))]
     Reassociate { iface: String },
 
-    #[snafu(display(
-        "Failed to force reread of wpa_supplicant configuration file"
-    ))]
+    #[snafu(display("Failed to force reread of wpa_supplicant configuration file"))]
     Reconfigure,
 
     #[snafu(display("Failed to reconnect with WiFi network for interface: {}", iface))]
@@ -144,6 +145,11 @@ impl From<NetworkError> for Error {
             NetworkError::DisableWifi { id, iface } => Error {
                 code: ErrorCode::ServerError(-32029),
                 message: format!("Failed to disable network {} for {}", id, iface),
+                data: None,
+            },
+            NetworkError::DisconnectWifi { iface } => Error {
+                code: ErrorCode::ServerError(-32032),
+                message: format!("Failed to disconnect {}", iface),
                 data: None,
             },
             NetworkError::GenWpaPassphrase { ssid, source } => Error {

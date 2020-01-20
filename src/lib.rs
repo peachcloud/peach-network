@@ -62,6 +62,20 @@ pub fn run() -> Result<(), BoxError> {
         }
     });
 
+    io.add_method("disconnect_wifi", move |params: Params| {
+        let i: Result<Iface, Error> = params.parse();
+        match i {
+            Ok(i) => {
+                let iface = i.iface;
+                match network::disconnect_wifi(&iface) {
+                    Ok(_) => Ok(Value::String("success".to_string())),
+                    Err(_) => Err(Error::from(NetworkError::DisconnectWifi { iface })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
+
     io.add_method("get_id", move |params: Params| {
         let i: Result<IfaceSsid, Error> = params.parse();
         match i {
@@ -194,12 +208,13 @@ pub fn run() -> Result<(), BoxError> {
         }
     });
 
-    io.add_method("reconfigure_wifi", move |_| {
-        match network::reconfigure_wifi() {
+    io.add_method(
+        "reconfigure_wifi",
+        move |_| match network::reconfigure_wifi() {
             Ok(_) => Ok(Value::String("success".to_string())),
             Err(_) => Err(Error::from(NetworkError::Reconfigure)),
-        }
-    });
+        },
+    );
 
     io.add_method("reconnect_wifi", move |params: Params| {
         let i: Result<Iface, Error> = params.parse();
@@ -371,6 +386,28 @@ mod tests {
             r#"{
   "code": -32029,
   "message": "Failed to disable network 0 for wlan0"
+}"#
+        );
+    }
+
+    // test to ensure correct disconnect_wifi error response
+    #[test]
+    fn rpc_disconnectwifi_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_disconnectwifi_error", |_| {
+                Err(Error::from(NetworkError::DisconnectWifi {
+                    iface: "wlan0".to_string(),
+                }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_disconnectwifi_error", &()),
+            r#"{
+  "code": -32032,
+  "message": "Failed to disconnect wlan0"
 }"#
         );
     }
