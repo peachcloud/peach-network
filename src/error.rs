@@ -66,10 +66,9 @@ pub enum NetworkError {
     Reassociate { iface: String },
 
     #[snafu(display(
-        "Failed to force reread of wpa_supplicant configuration file for interface: {}",
-        iface
+        "Failed to force reread of wpa_supplicant configuration file"
     ))]
-    Reconfigure { iface: String },
+    Reconfigure,
 
     #[snafu(display("Failed to reconnect with WiFi network for interface: {}", iface))]
     Reconnect { iface: String },
@@ -225,12 +224,9 @@ impl From<NetworkError> for Error {
                 message: format!("Failed to reassociate with WiFi network for {}", iface),
                 data: None,
             },
-            NetworkError::Reconfigure { iface } => Error {
+            NetworkError::Reconfigure => Error {
                 code: ErrorCode::ServerError(-32030),
-                message: format!(
-                    "Failed to force reread of wpa_supplicant configuration file for {}",
-                    iface
-                ),
+                message: "Failed to force reread of wpa_supplicant configuration file".to_string(),
                 data: None,
             },
             NetworkError::Reconnect { iface } => Error {

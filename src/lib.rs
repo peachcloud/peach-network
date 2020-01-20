@@ -194,17 +194,10 @@ pub fn run() -> Result<(), BoxError> {
         }
     });
 
-    io.add_method("reconfigure_wifi", move |params: Params| {
-        let i: Result<Iface, Error> = params.parse();
-        match i {
-            Ok(i) => {
-                let iface = i.iface;
-                match network::reconfigure_wifi(&iface) {
-                    Ok(_) => Ok(Value::String("success".to_string())),
-                    Err(_) => Err(Error::from(NetworkError::Reconfigure { iface })),
-                }
-            }
-            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+    io.add_method("reconfigure_wifi", move |_| {
+        match network::reconfigure_wifi() {
+            Ok(_) => Ok(Value::String("success".to_string())),
+            Err(_) => Err(Error::from(NetworkError::Reconfigure)),
         }
     });
 
@@ -658,9 +651,7 @@ mod tests {
         let rpc = {
             let mut io = IoHandler::new();
             io.add_method("rpc_reconfigure_error", |_| {
-                Err(Error::from(NetworkError::Reconfigure {
-                    iface: "wlan0".to_string(),
-                }))
+                Err(Error::from(NetworkError::Reconfigure))
             });
             test::Rpc::from(io)
         };
@@ -669,7 +660,7 @@ mod tests {
             rpc.request("rpc_reconfigure_error", &()),
             r#"{
   "code": -32030,
-  "message": "Failed to force reread of wpa_supplicant configuration file for wlan0"
+  "message": "Failed to force reread of wpa_supplicant configuration file"
 }"#
         );
     }

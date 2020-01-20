@@ -400,12 +400,8 @@ pub fn reassociate_wifi(iface: &str) -> Result<(), NetworkError> {
 }
 
 // force wpa_supplicant to reread the config file (wpa_supplicant.conf)
-pub fn reconfigure_wifi(iface: &str) -> Result<(), NetworkError> {
-    let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
-    let mut wpa = wpactrl::WpaCtrl::new()
-        .ctrl_path(wpa_path)
-        .open()
-        .context(WpaCtrlOpen)?;
+pub fn reconfigure_wifi() -> Result<(), NetworkError> {
+    let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
     wpa.request("RECONFIGURE").context(WpaCtrlRequest)?;
     Ok(())
 }
