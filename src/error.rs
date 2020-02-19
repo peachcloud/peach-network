@@ -55,6 +55,9 @@ pub enum NetworkError {
     #[snafu(display("Missing expected parameters: {}", e))]
     MissingParams { e: Error },
 
+    #[snafu(display("Failed to set new password for network {} on {}", id, iface))]
+    NewPassword { id: String, iface: String },
+
     #[snafu(display("No IP found for interface: {}", iface))]
     NoIpFound { iface: String },
 
@@ -212,6 +215,11 @@ impl From<NetworkError> for Error {
                 data: None,
             },
             NetworkError::MissingParams { e } => e.clone(),
+            NetworkError::NewPassword { id, iface } => Error {
+                code: ErrorCode::ServerError(-32033),
+                message: format!("Failed to set new password for network {} on {}", id, iface),
+                data: None,
+            },
             NetworkError::NoIpFound { iface } => Error {
                 code: ErrorCode::ServerError(-32007),
                 message: format!("No IP address found for {}", iface),

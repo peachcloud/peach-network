@@ -16,7 +16,7 @@ use jsonrpc_test as test;
 use serde_json::json;
 
 use crate::error::{BoxError, NetworkError};
-use crate::network::{Iface, IfaceId, IfaceSsid, WiFi};
+use crate::network::{Iface, IfaceId, IfaceIdPass, IfaceSsid, WiFi};
 
 pub fn run() -> Result<(), BoxError> {
     info!("Starting up.");
@@ -189,6 +189,22 @@ pub fn run() -> Result<(), BoxError> {
         match list {
             Some(list) => Ok(Value::String(list)),
             None => Err(Error::from(NetworkError::ListSavedNetworks)),
+        }
+    });
+
+    io.add_method("new_password", move |params: Params| {
+        let i: Result<IfaceIdPass, Error> = params.parse();
+        match i {
+            Ok(i) => {
+                let iface = i.iface;
+                let id = i.id;
+                let pass = i.pass;
+                match network::new_password(&iface, &id, &pass) {
+                    Ok(_) => Ok(Value::String("success".to_string())),
+                    Err(_) => Err(Error::from(NetworkError::NewPassword { iface, id })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
         }
     });
 
@@ -634,6 +650,29 @@ mod tests {
             r#"{
   "code": -32602,
   "message": "Invalid params: invalid type: null, expected struct Iface."
+}"#
+        );
+    }
+
+    // test to ensure correct new_password error response
+    #[test]
+    fn rpc_newpassword_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_newpassword_error", |_| {
+                Err(Error::from(NetworkError::NewPassword {
+                    id: "1".to_string(),
+                    iface: "wlan0".to_string(),
+                }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_newpassword_error", &()),
+            r#"{
+  "code": -32033,
+  "message": "Failed to set new password for network 1 on wlan0"
 }"#
         );
     }

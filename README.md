@@ -26,6 +26,7 @@ _Note: This module is a work-in-progress._
 | `get_traffic` | `iface` | Return network traffic for given interface |
 | `if_checker` | | Run AP / client-mode configuration script |
 | `list_networks` | | List all networks saved in wpasupplicant config |
+| `new_password` | `id`, `iface`, `password` | Set a new password for given network id and interface |
 | `ping` | | Respond with `success` if microservice is running |
 | `reassociate_wifi` | `iface` | Reassociate with current AP for given interface |
 | `reconfigure_wifi` | | Force wpa_supplicant to re-read its configuration file |

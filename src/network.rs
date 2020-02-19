@@ -29,6 +29,13 @@ pub struct IfaceId {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct IfaceIdPass {
+    pub iface: String,
+    pub id: String,
+    pub pass: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct IfaceSsid {
     pub iface: String,
     pub ssid: String,
@@ -398,6 +405,18 @@ pub fn list_networks() -> Result<Option<String>, NetworkError> {
         let results = serde_json::to_string(&ssids).context(SerdeSerialize)?;
         Ok(Some(results))
     }
+}
+
+// set new password for given network id, corresponding to an access point
+pub fn new_password(id: &str, iface: &str, pass: &str) -> Result<(), NetworkError> {
+    let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
+    let mut wpa = wpactrl::WpaCtrl::new()
+        .ctrl_path(wpa_path)
+        .open()
+        .context(WpaCtrlOpen)?;
+    let new_pass = format!("NEW_PASSWORD {} {}", id, pass);
+    wpa.request(&new_pass).context(WpaCtrlRequest)?;
+    Ok(())
 }
 
 // reassociate the wireless interface
