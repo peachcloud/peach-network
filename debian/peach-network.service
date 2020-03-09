@@ -1,0 +1,12 @@
+[Unit]
+Description=Query and configure network interfaces using JSON-RPC over HTTP.
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/usr/bin/peach-network
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

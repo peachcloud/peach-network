@@ -3,6 +3,28 @@ name = "peach-network"
 version = "0.1.0"
 authors = ["Andrew Reid <gnomad@cryptolab.net>"]
 edition = "2018"
+description = "Query and configure network interfaces using JSON-RPC over HTTP."
+homepage = "https://opencollective.com/peachcloud"
+repository = "https://github.com/peachcloud/peach-network"
+readme = "README.md"
+license = "AGPL-3.0-only"
+publish = false
+
+[package.metadata.deb]
+depends = "$auto"
+extended-description = """\
+peach-network is a microservice to query and configure network interfaces \
+using JSON-RPC over HTTP."""
+maintainer-scripts="debian"
+assets = [
+    ["target/release/peach-network", "usr/bin/", "755"],
+    ["debian/peach-network.service", "/lib/systemd/system/peach-network.service", "644"],
+    ["README.md", "usr/share/doc/peach-network/README", "644"],
+]
+
+[badges]
+travis-ci = { repository = "peachcloud/peach-network", branch = "master" }
+maintenance = { status = "actively-developed" }
 
 [dependencies]
 env_logger = "0.6"
