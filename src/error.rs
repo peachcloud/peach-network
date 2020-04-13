@@ -95,6 +95,9 @@ pub enum NetworkError {
     #[snafu(display("JSON serialization failed: {}", source))]
     SerdeSerialize { source: SerdeError },
 
+    #[snafu(display("Failed to set the ap0 interface up: {}", source))]
+    SetApInterfaceUp { source: io::Error },
+
     #[snafu(display("Failed to set the wlan0 interface down: {}", source))]
     SetWlanInterfaceDown { source: io::Error },
 
@@ -276,6 +279,11 @@ impl From<NetworkError> for Error {
             NetworkError::SerdeSerialize { source } => Error {
                 code: ErrorCode::ServerError(-32012),
                 message: format!("JSON serialization failed: {}", source),
+                data: None,
+            },
+            NetworkError::SetApInterfaceUp { source } => Error {
+                code: ErrorCode::ServerError(-32032),
+                message: format!("Failed to set ap0 interface up: {}", source),
                 data: None,
             },
             NetworkError::SetWlanInterfaceDown { source } => Error {

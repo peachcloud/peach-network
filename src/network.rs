@@ -111,6 +111,16 @@ pub fn activate_ap() -> Result<(), NetworkError> {
         .arg("dnsmasq")
         .output()
         .context(StartDnsmasq)?;
+    // set ap0 interface to UP
+    Command::new("sudo")
+        .arg("/sbin/ip")
+        .arg("link")
+        .arg("set")
+        .arg("dev")
+        .arg("ap0")
+        .arg("up")
+        .output()
+        .context(SetApInterfaceUp)?;
 
     Ok(())
 }
