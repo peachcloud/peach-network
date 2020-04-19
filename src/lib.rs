@@ -119,6 +119,20 @@ pub fn run() -> Result<(), BoxError> {
         }
     });
 
+    io.add_method("get_signal_percent", move |params: Params| {
+        let i: Result<Iface, Error> = params.parse();
+        match i {
+            Ok(i) => {
+                let iface = i.iface;
+                match network::get_signal_percent(&iface)? {
+                    Some(rssi) => Ok(Value::String(rssi)),
+                    None => Err(Error::from(NetworkError::GetSignalPercent { iface })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
+
     io.add_method("get_ssid", move |params: Params| {
         let i: Result<Iface, Error> = params.parse();
         match i {
@@ -515,6 +529,28 @@ mod tests {
             r#"{
   "code": -32002,
   "message": "Failed to retrieve RSSI for wlan0. Interface may not be connected"
+}"#
+        );
+    }
+
+    // test to ensure correct getsignalpercent error response
+    #[test]
+    fn rpc_getsignalpercent_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_getsignalpercent_error", |_| {
+                Err(Error::from(NetworkError::GetSignalPercent {
+                    iface: "wlan0".to_string(),
+                }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_getsignalpercent_error", &()),
+            r#"{
+  "code": -32034,
+  "message": "Failed to retrieve signal quality (%) for wlan0. Interface may not be connected"
 }"#
         );
     }

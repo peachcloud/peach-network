@@ -19,7 +19,8 @@ _Note: This module is a work-in-progress._
 | `disconnect_wifi` | `iface` | Disconnect given interface |
 | `get_id` | `iface`, `ssid` | Return ID of given SSID |
 | `get_ip` | `iface` | Return IP of given network interface |
-| `get_rssi` | `iface` | Return average signal strength for given interface |
+| `get_rssi` | `iface` | Return average signal strength (dBm) for given interface |
+| `get_signal_percent` | `iface` | Return average signal strength (%) for given interface |
 | `get_ssid` | `iface` | Return SSID of currently-connected network for given interface |
 | `get_state` | `iface` | Return state of given interface |
 | `get_status` | `iface` | Return status parameters for given interface |

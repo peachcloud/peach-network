@@ -34,6 +34,9 @@ pub enum NetworkError {
     #[snafu(display("Could not find RSSI for interface: {}", iface))]
     GetRssi { iface: String },
 
+    #[snafu(display("Could not find signal quality (%) for interface: {}", iface))]
+    GetSignalPercent { iface: String },
+
     #[snafu(display("Could not find SSID for interface: {}", iface))]
     GetSsid { iface: String },
 
@@ -174,6 +177,14 @@ impl From<NetworkError> for Error {
                 code: ErrorCode::ServerError(-32002),
                 message: format!(
                     "Failed to retrieve RSSI for {}. Interface may not be connected",
+                    iface
+                ),
+                data: None,
+            },
+            NetworkError::GetSignalPercent { iface } => Error {
+                code: ErrorCode::ServerError(-32034),
+                message: format!(
+                    "Failed to retrieve signal quality (%) for {}. Interface may not be connected",
                     iface
                 ),
                 data: None,
