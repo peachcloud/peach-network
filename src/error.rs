@@ -35,7 +35,7 @@ pub enum NetworkError {
     GetRssi { iface: String },
 
     #[snafu(display("Could not find signal quality (%) for interface: {}", iface))]
-    GetSignalPercent { iface: String },
+    GetRssiPercent { iface: String },
 
     #[snafu(display("Could not find SSID for interface: {}", iface))]
     GetSsid { iface: String },
@@ -63,6 +63,9 @@ pub enum NetworkError {
 
     #[snafu(display("No IP found for interface: {}", iface))]
     NoIpFound { iface: String },
+
+    #[snafu(display("Failed to parse integer from string for RSSI value: {}", source))]
+    ParseString { source: std::num::ParseIntError },
 
     #[snafu(display(
         "Failed to retrieve network traffic measurement for {}: {}",
@@ -181,7 +184,7 @@ impl From<NetworkError> for Error {
                 ),
                 data: None,
             },
-            NetworkError::GetSignalPercent { iface } => Error {
+            NetworkError::GetRssiPercent { iface } => Error {
                 code: ErrorCode::ServerError(-32034),
                 message: format!(
                     "Failed to retrieve signal quality (%) for {}. Interface may not be connected",
@@ -234,6 +237,14 @@ impl From<NetworkError> for Error {
             NetworkError::NoIpFound { iface } => Error {
                 code: ErrorCode::ServerError(-32007),
                 message: format!("No IP address found for {}", iface),
+                data: None,
+            },
+            NetworkError::ParseString { source } => Error {
+                code: ErrorCode::ServerError(-32035),
+                message: format!(
+                    "Failed to parse integer from string for RSSI value: {}",
+                    source
+                ),
                 data: None,
             },
             NetworkError::ReadTraffic { iface, source } => Error {

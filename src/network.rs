@@ -253,7 +253,7 @@ pub fn get_rssi(iface: &str) -> Result<Option<String>, NetworkError> {
 }
 
 // retrieve average signal strength (%) for specified interface
-pub fn get_signal_percent(iface: &str) -> Result<Option<String>, NetworkError> {
+pub fn get_rssi_percent(iface: &str) -> Result<Option<String>, NetworkError> {
     let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
     let mut wpa = wpactrl::WpaCtrl::new()
         .ctrl_path(wpa_path)
@@ -265,7 +265,7 @@ pub fn get_signal_percent(iface: &str) -> Result<Option<String>, NetworkError> {
         // AVG_RSSI fluctuates wildly, use RSSI instead
         let rssi = rssi_line.to_string().split_off(5);
         // parse the string to a signed integer (for math)
-        let rssi_parsed = rssi.parse::<i32>().unwrap();
+        let rssi_parsed = rssi.parse::<i32>().context(ParseString)?;
         // perform rssi (dBm) to quality (%) conversion
         let quality_percent = 2 * (rssi_parsed + 100);
         // convert signal quality integer to string
