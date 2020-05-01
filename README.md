@@ -104,7 +104,7 @@ Remove configuration files (not removed with `apt-get remove`):
 
 With microservice running, open a second terminal window and use `curl` to call server methods:
 
-`curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "get_ip", "params" : {"iface": "wlan0" }, "id":1 }' 127.0.0.1:5000`
+`curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "get_ip", "params" : {"iface": "wlan0" }, "id":1 }' 127.0.0.1:5110`
 
 Server responds with:
 
@@ -112,7 +112,7 @@ Server responds with:
 
 **Retrieve SSID of connected access point for wlan1**
 
-`curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "get_ssid", "params" : {"iface": "wlan1" }, "id":1 }' 127.0.0.1:5000`
+`curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "get_ssid", "params" : {"iface": "wlan1" }, "id":1 }' 127.0.0.1:5110`
 
 Server response when interface is connected:
 
@@ -124,7 +124,7 @@ Server response when interface is not connected:
 
 **Retrieve list of SSIDs for all networks in range of wlan0**
 
-`curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "scan_networks", "params" : {"iface": "wlan0" }, "id":1 }' 127.0.0.1:5000`
+`curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "scan_networks", "params" : {"iface": "wlan0" }, "id":1 }' 127.0.0.1:5110`
 
 Server response when interface is connected:
 
@@ -136,7 +136,7 @@ Server response when interface is not connected:
 
 **Retrieve network traffic statistics for wlan1**
 
-`curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "get_traffic", "params" : {"iface": "wlan1" }, "id":1 }' 127.0.0.1:5000`
+`curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "get_traffic", "params" : {"iface": "wlan1" }, "id":1 }' 127.0.0.1:5110`
 
 Server response if interface exists:
 
