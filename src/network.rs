@@ -166,7 +166,7 @@ pub fn add_wifi(wifi: &WiFi) -> Result<(), NetworkError> {
             // TODO: handle this better: create file if not found
             //  & seed with 'ctrl_interace' & 'update_config' settings
             //  config file could also be copied from peach/config fs location
-            Err(_) => panic!("There was a problem appending to the file"),
+            Err(e) => panic!("Failed to write to file: {}", e),
         };
     }
 
