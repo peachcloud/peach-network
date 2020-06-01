@@ -97,6 +97,13 @@ pub fn activate_ap() -> Result<(), NetworkError> {
         .arg("wlan0")
         .output()
         .context(SetWlanInterfaceDown)?;
+    // unmask hostapd (just a precaution)
+    Command::new("sudo")
+        .arg("/usr/bin/systemctl")
+        .arg("unmask")
+        .arg("hostapd")
+        .output()
+        .context(UnmaskHostapd)?;
     // systemctl start hostapd
     Command::new("sudo")
         .arg("/usr/bin/systemctl")
@@ -111,6 +118,15 @@ pub fn activate_ap() -> Result<(), NetworkError> {
         .arg("dnsmasq")
         .output()
         .context(StartDnsmasq)?;
+    // set ap0 interface up
+    Command::new("sudo")
+        .arg("/usr/bin/ip")
+        .arg("link")
+        .arg("set")
+        .arg("ap0")
+        .arg("up")
+        .output()
+        .context(SetApInterfaceUp)?;
 
     Ok(())
 }

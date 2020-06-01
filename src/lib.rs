@@ -907,6 +907,27 @@ mod tests {
         );
     }
 
+    // test to ensure correct SetApInterfaceUp error response
+    #[test]
+    fn rpc_setapinterfaceup_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_setapinterfaceup_error", |_| {
+                let source = IoError::new(ErrorKind::PermissionDenied, "oh no!");
+                Err(Error::from(NetworkError::SetApInterfaceUp { source }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_setapinterfaceup_error", &()),
+            r#"{
+  "code": -32036,
+  "message": "Failed to set ap0 interface up: oh no!"
+}"#
+        );
+    }
+
     // test to ensure correct SetWlanInterfaceDown error response
     #[test]
     fn rpc_setwlaninterfacedown_error() {
@@ -987,6 +1008,27 @@ mod tests {
             r#"{
   "code": -32015,
   "message": "Failed to stop wpasupplicant process: oh no!"
+}"#
+        );
+    }
+
+    // test to ensure correct UnmaskHostapd error response
+    #[test]
+    fn rpc_unmaskhostapd_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_unmaskhostapd_error", |_| {
+                let source = IoError::new(ErrorKind::PermissionDenied, "oh no!");
+                Err(Error::from(NetworkError::UnmaskHostapd { source }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_unmaskhostapd_error", &()),
+            r#"{
+  "code": -32037,
+  "message": "Failed to unmask hostapd process: oh no!"
 }"#
         );
     }
