@@ -17,17 +17,20 @@ use snafu::ResultExt;
 
 use crate::error::*;
 
+/// Structure representing a network interface name.
 #[derive(Debug, Deserialize)]
 pub struct Iface {
     pub iface: String,
 }
 
+/// Structure representing a network interface name and network identifier.
 #[derive(Debug, Deserialize)]
 pub struct IfaceId {
     pub iface: String,
     pub id: String,
 }
 
+/// Structure representing a network interface name, network identifier and password.
 #[derive(Debug, Deserialize)]
 pub struct IfaceIdPass {
     pub iface: String,
@@ -35,40 +38,31 @@ pub struct IfaceIdPass {
     pub pass: String,
 }
 
+/// Structure representing a network interface name and network SSID.
 #[derive(Debug, Deserialize)]
 pub struct IfaceSsid {
     pub iface: String,
     pub ssid: String,
 }
 
+/// Structure representing a network SSID.
 #[derive(Debug, Serialize)]
-pub struct Networks {
+pub struct Network {
     pub ssid: String,
 }
 
+/// Structure representing access point data retrieved via scan.
 #[derive(Debug, Serialize)]
 pub struct Scan {
     pub frequency: String,
+    pub protocol: String,
     pub signal_level: String,
     pub ssid: String,
-    pub protocol: String,
 }
 
+/// Structure representing status data for a network interface.
 #[derive(Debug, Serialize)]
-pub struct Traffic {
-    pub received: u64,
-    pub transmitted: u64,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct WiFi {
-    pub ssid: String,
-    pub pass: String,
-}
-
-// struct for wpa_cli 'status' data
-#[derive(Debug, Serialize)]
-pub struct IfaceStatus {
+pub struct Status {
     pub address: String,
     pub bssid: String,
     pub freq: String,
@@ -82,9 +76,37 @@ pub struct IfaceStatus {
     pub wpa_state: String,
 }
 
+/// Structure representing received and transmitted network traffic.
+#[derive(Debug, Serialize)]
+pub struct Traffic {
+    pub received: u64,
+    pub transmitted: u64,
+}
+
+/// Structure representing the SSID and password of a wireless access point.
+#[derive(Debug, Deserialize)]
+pub struct WiFi {
+    pub ssid: String,
+    pub pass: String,
+}
+
 /* GET - Methods for retrieving data */
 
-// list all wireless networks in range of the given interface
+/// Retrieve list of available wireless access points for a given network
+/// interface.
+///
+/// # Arguments
+///
+/// * `iface` - A string slice holding the name of a wireless network interface
+///
+/// If the scan results include one or more access points for the given network 
+/// interface, an `Ok` `Result` type is returned containing `Some(String)` - 
+/// where `String` is a serialized vector of `Scan` structs containing
+/// data for the in-range access points. If no access points are found,
+/// a `None` type is returned in the `Result`. In the event of an error, a
+/// `NetworkError` is returned in the `Result`. The `NetworkError` is then
+/// enumerated to a specific error type and an appropriate JSON RPC response is
+/// sent to the caller.
 pub fn available_networks(iface: &str) -> Result<Option<String>, NetworkError> {
     let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
     let mut wpa = wpactrl::WpaCtrl::new()
@@ -128,7 +150,21 @@ pub fn available_networks(iface: &str) -> Result<Option<String>, NetworkError> {
     }
 }
 
-// retrieve network id for specified ssid & interface
+/// Retrieve network identifier for the network specified by a given interface
+/// and SSID.
+///
+/// # Arguments
+///
+/// * `iface` - A string slice holding the name of a wireless network interface
+/// * `ssid` - A string slice holding the SSID of a wireless access point
+///
+/// If the identifier corresponding to the given interface and SSID is
+/// found in the list of saved networks, an `Ok` `Result` type is returned
+/// containing `Some(String)` - where `String` is the network identifier.
+/// If no match is found, a `None` type is returned in the `Result`. In the
+/// event of an error, a `NetworkError` is returned in the `Result`. The
+/// `NetworkError` is then enumerated to a specific error type and an
+/// appropriate JSON RPC response is sent to the caller.
 pub fn id(iface: &str, ssid: &str) -> Result<Option<String>, NetworkError> {
     let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
     let mut wpa = wpactrl::WpaCtrl::new()
@@ -153,7 +189,19 @@ pub fn id(iface: &str, ssid: &str) -> Result<Option<String>, NetworkError> {
     }
 }
 
-// retrieve ip address for specified interface
+/// Retrieve IP address for a given interface.
+///
+/// # Arguments
+///
+/// * `iface` - A string slice holding the name of a wireless network interface
+///
+/// If the given interface is found in the list of available interfaces, 
+/// an `Ok` `Result` type is returned containing `Some(String)` - where `String`
+/// is the IP address of the interface. If no match is found, a `None` type is
+/// returned in the `Result`. In the event of an error, a `NetworkError` is
+/// returned in the `Result`. The `NetworkError` is then enumerated to a
+/// specific error type and an appropriate JSON RPC response is sent to the
+/// caller.
 pub fn ip(iface: &str) -> Result<Option<String>, NetworkError> {
     let net_if: String = iface.to_string();
     let ifaces = get_if_addrs::get_if_addrs().context(NoIp { iface: net_if })?;
@@ -165,7 +213,20 @@ pub fn ip(iface: &str) -> Result<Option<String>, NetworkError> {
     Ok(ip)
 }
 
-// retrieve average signal strength (dBm) for specified interface
+/// Retrieve average signal strength (dBm) for the network associated with
+/// a given interface.
+///
+/// # Arguments
+///
+/// * `iface` - A string slice holding the name of a wireless network interface
+///
+/// If the signal strength is found for the given interface after polling,  
+/// an `Ok` `Result` type is returned containing `Some(String)` - where `String`
+/// is the RSSI (Received Signal Strength Indicator) of the connection measured
+/// in dBm. If signal strength is not found, a `None` type is returned in the
+/// `Result`. In the event of an error, a `NetworkError` is returned in the
+/// `Result`. The `NetworkError` is then enumerated to a specific error type and
+/// an appropriate JSON RPC response is sent to the caller.
 pub fn rssi(iface: &str) -> Result<Option<String>, NetworkError> {
     let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
     let mut wpa = wpactrl::WpaCtrl::new()
@@ -183,7 +244,20 @@ pub fn rssi(iface: &str) -> Result<Option<String>, NetworkError> {
     }
 }
 
-// retrieve average signal strength (%) for specified interface
+/// Retrieve average signal strength (%) for the network associated with
+/// a given interface.
+///
+/// # Arguments
+///
+/// * `iface` - A string slice holding the name of a wireless network interface
+///
+/// If the signal strength is found for the given interface after polling,  
+/// an `Ok` `Result` type is returned containing `Some(String)` - where `String`
+/// is the RSSI (Received Signal Strength Indicator) of the connection measured
+/// as a percentage. If signal strength is not found, a `None` type is returned
+/// in the `Result`. In the event of an error, a `NetworkError` is returned in
+/// the `Result`. The `NetworkError` is then enumerated to a specific error type
+/// and an appropriate JSON RPC response is sent to the caller.
 pub fn rssi_percent(iface: &str) -> Result<Option<String>, NetworkError> {
     let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
     let mut wpa = wpactrl::WpaCtrl::new()
@@ -207,7 +281,17 @@ pub fn rssi_percent(iface: &str) -> Result<Option<String>, NetworkError> {
     }
 }
 
-// list all wireless networks saved to the wpasupplicant config
+/// Retrieve list of all access points with credentials saved in the
+/// wpasupplicant configuration file.
+///
+/// If the wpasupplicant configuration file contains credentials for one or
+/// more access points, an `Ok` `Result` type is returned containing
+/// `Some(String)` - where `String` is a serialized vector of `Network` structs
+/// containing the SSIDs of all saved networks. If no network credentials are
+/// found, a `None` type is returned in the `Result`. In the event of an error,
+/// a `NetworkError` is returned in the `Result`. The `NetworkError` is then
+/// enumerated to a specific error type and an appropriate JSON RPC response is
+/// sent to the caller.
 pub fn saved_networks() -> Result<Option<String>, NetworkError> {
     let mut wpa = wpactrl::WpaCtrl::new().open().context(WpaCtrlOpen)?;
     let networks = wpa.request("LIST_NETWORKS").context(WpaCtrlRequest)?;
@@ -217,7 +301,7 @@ pub fn saved_networks() -> Result<Option<String>, NetworkError> {
         let len = v.len();
         if len > 1 {
             let ssid = v[1].trim().to_string();
-            let response = Networks { ssid };
+            let response = Network { ssid };
             ssids.push(response)
         }
     }
@@ -277,7 +361,7 @@ pub fn state(iface: &str) -> Result<Option<String>, NetworkError> {
 
 // retrieve current status for the given interface
 // - serves aggregated interface data
-pub fn status(iface: &str) -> Result<Option<IfaceStatus>, NetworkError> {
+pub fn status(iface: &str) -> Result<Option<Status>, NetworkError> {
     let wpa_path: String = format!("/var/run/wpa_supplicant/{}", iface);
     let mut wpa = wpactrl::WpaCtrl::new()
         .ctrl_path(wpa_path)
@@ -322,7 +406,7 @@ pub fn status(iface: &str) -> Result<Option<IfaceStatus>, NetworkError> {
             .expect("None value unwrap for address in get_status");
 
         // assign values to struct fields, splitting after the `=` sign
-        let iface_status = IfaceStatus {
+        let iface_status = Status {
             address: address.to_string().split_off(8),
             bssid: bssid.to_string().split_off(6),
             freq: freq.to_string().split_off(5),
