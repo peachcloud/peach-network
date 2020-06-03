@@ -1,3 +1,18 @@
+//! # peach-network
+//!
+//! `peach-network` is a networking microservice module for PeachCloud. It
+//! exposes a JSON-RPC API over HTTP which allows querying of network interface
+//! data and modification of interface state.
+//!
+//! The `src/network.rs` module contains the core networking logic and data
+//! types for interacting with the `wpa_supplicant` process and related parts of
+//! the operating system, while the `src/error.rs` module contains
+//! error-handling data types and methods.
+//!
+//! `src/main.rs` initializes the logger, starts the application and catches
+//! application errors, while `src/lib.rs` contains the JSON-RPC server, RPC
+//! methods, HTTP server and tests.
+
 #[macro_use]
 extern crate log;
 extern crate get_if_addrs;
@@ -26,7 +41,7 @@ pub fn run() -> Result<(), BoxError> {
     let mut io = IoHandler::default();
 
     /* GET - All RPC methods for retrieving data */
-    
+
     io.add_method("available_networks", move |params: Params| {
         let i: Result<Iface, Error> = params.parse();
         match i {
@@ -168,7 +183,7 @@ pub fn run() -> Result<(), BoxError> {
     });
 
     /* SET - All RPC methods for modifying state */
-    
+
     io.add_method("activate_ap", move |_| {
         network::activate_ap()?;
 
