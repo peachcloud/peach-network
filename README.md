@@ -34,6 +34,7 @@ Methods for **modifying state**:
 | `activate_client` | | Activate WiFi client connection (stop `hostapd` and `dnsmasq` and start `wpa_supplicant`) |
 | `add` | `ssid`, `pass` | Add WiFi credentials to `wpa_supplicant.conf` |
 | `check_iface` | | Run AP / client-mode configuration script |
+| `connect` | `id`, `iface` | Disable other networks and attempt connection with AP represented by given id |
 | `delete` | `id`, `iface` | Remove WiFi credentials for given network id and interface |
 | `disable` | `id`, `iface` | Disable connection with AP represented by given id |
 | `disconnect` | `iface` | Disconnect given interface |
@@ -42,7 +43,6 @@ Methods for **modifying state**:
 | `reconfigure` | | Force wpa_supplicant to re-read its configuration file |
 | `reconnect` | `iface` | Disconnect and reconnect given interface |
 | `save` | | Save configuration changes to `wpa_supplicant.conf` |
-| `select` | `id`, `iface` | Disable other networks and attempt connection with AP represented by given id |
 
 ### Environment
 

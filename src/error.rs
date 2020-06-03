@@ -95,8 +95,8 @@ pub enum NetworkError {
     #[snafu(display("Failed to save configuration changes to file"))]
     Save,
 
-    #[snafu(display("Failed to select network {} for interface: {}", id, iface))]
-    Select { id: String, iface: String },
+    #[snafu(display("Failed to connect to network {} for interface: {}", id, iface))]
+    Connect { id: String, iface: String },
 
     #[snafu(display("JSON serialization failed: {}", source))]
     SerdeSerialize { source: SerdeError },
@@ -296,9 +296,9 @@ impl From<NetworkError> for Error {
                 message: "Failed to save configuration changes to file".to_string(),
                 data: None,
             },
-            NetworkError::Select { id, iface } => Error {
+            NetworkError::Connect { id, iface } => Error {
                 code: ErrorCode::ServerError(-32027),
-                message: format!("Failed to select network {} for {}", id, iface),
+                message: format!("Failed to connect to network {} for {}", id, iface),
                 data: None,
             },
             NetworkError::SerdeSerialize { source } => Error {
