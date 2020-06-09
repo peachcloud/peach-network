@@ -1,10 +1,25 @@
+//! # peach-network
+//!
+//! `peach-network` is a networking microservice module for PeachCloud. It
+//! exposes a JSON-RPC API over HTTP which allows querying of network interface
+//! data and modification of interface state.
+//!
+//! The `src/network.rs` module contains the core networking logic and data
+//! types for interacting with the `wpa_supplicant` process and related parts of
+//! the operating system, while the `src/error.rs` module contains
+//! error-handling data types and methods.
+//!
+//! `src/main.rs` initializes the logger, starts the application and catches
+//! application errors, while `src/lib.rs` contains the JSON-RPC server, RPC
+//! methods, HTTP server and tests.
+
 #[macro_use]
 extern crate log;
 extern crate get_if_addrs;
 extern crate wpactrl;
 
 mod error;
-mod network;
+pub mod network;
 
 use std::env;
 use std::result::Result;
@@ -18,11 +33,156 @@ use serde_json::json;
 use crate::error::{BoxError, NetworkError};
 use crate::network::{Iface, IfaceId, IfaceIdPass, IfaceSsid, WiFi};
 
+/// Create JSON-RPC I/O handler, add RPC methods and launch HTTP server.
 pub fn run() -> Result<(), BoxError> {
     info!("Starting up.");
 
     info!("Creating JSON-RPC I/O handler.");
     let mut io = IoHandler::default();
+
+    /* GET - All RPC methods for retrieving data */
+
+    io.add_method("available_networks", move |params: Params| {
+        let i: Result<Iface, Error> = params.parse();
+        match i {
+            Ok(i) => {
+                let iface = i.iface;
+                match network::available_networks(&iface)? {
+                    Some(list) => Ok(Value::String(list)),
+                    None => Err(Error::from(NetworkError::AvailableNetworks { iface })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
+
+    io.add_method("id", move |params: Params| {
+        let i: Result<IfaceSsid, Error> = params.parse();
+        match i {
+            Ok(i) => {
+                let iface = i.iface;
+                let ssid = i.ssid;
+                match network::id(&iface, &ssid)? {
+                    Some(id) => Ok(Value::String(id)),
+                    None => Err(Error::from(NetworkError::Id { iface, ssid })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
+
+    io.add_method("ip", move |params: Params| {
+        let i: Result<Iface, Error> = params.parse();
+        match i {
+            Ok(i) => {
+                let iface = i.iface;
+                match network::ip(&iface)? {
+                    Some(ip) => Ok(Value::String(ip)),
+                    None => Err(Error::from(NetworkError::Ip { iface })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
+
+    io.add_method("ping", |_: Params| Ok(Value::String("success".to_string())));
+
+    io.add_method("rssi", move |params: Params| {
+        let i: Result<Iface, Error> = params.parse();
+        match i {
+            Ok(i) => {
+                let iface = i.iface;
+                match network::rssi(&iface)? {
+                    Some(rssi) => Ok(Value::String(rssi)),
+                    None => Err(Error::from(NetworkError::Rssi { iface })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
+
+    io.add_method("rssi_percent", move |params: Params| {
+        let i: Result<Iface, Error> = params.parse();
+        match i {
+            Ok(i) => {
+                let iface = i.iface;
+                match network::rssi_percent(&iface)? {
+                    Some(rssi) => Ok(Value::String(rssi)),
+                    None => Err(Error::from(NetworkError::RssiPercent { iface })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
+
+    io.add_method("saved_networks", move |_| {
+        let list = network::saved_networks()?;
+        match list {
+            Some(list) => Ok(Value::String(list)),
+            None => Err(Error::from(NetworkError::SavedNetworks)),
+        }
+    });
+
+    io.add_method("ssid", move |params: Params| {
+        let i: Result<Iface, Error> = params.parse();
+        match i {
+            Ok(i) => {
+                let iface = i.iface;
+                match network::ssid(&iface)? {
+                    Some(ip) => Ok(Value::String(ip)),
+                    None => Err(Error::from(NetworkError::Ssid { iface })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
+
+    io.add_method("state", move |params: Params| {
+        let i: Result<Iface, Error> = params.parse();
+        match i {
+            Ok(i) => {
+                let iface = i.iface;
+                match network::state(&iface)? {
+                    Some(state) => Ok(Value::String(state)),
+                    None => Err(Error::from(NetworkError::State { iface })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
+
+    io.add_method("status", move |params: Params| {
+        let i: Result<Iface, Error> = params.parse();
+        match i {
+            Ok(i) => {
+                let iface = i.iface;
+                match network::status(&iface)? {
+                    Some(status) => {
+                        let json_status = json!(status);
+                        Ok(Value::String(json_status.to_string()))
+                    }
+                    None => Err(Error::from(NetworkError::Status { iface })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
+
+    io.add_method("traffic", move |params: Params| {
+        let i: Result<Iface, Error> = params.parse();
+        match i {
+            Ok(i) => {
+                let iface = i.iface;
+                match network::traffic(&iface)? {
+                    Some(traffic) => Ok(Value::String(traffic)),
+                    None => Err(Error::from(NetworkError::Traffic { iface })),
+                }
+            }
+            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
+        }
+    });
+
+    /* SET - All RPC methods for modifying state */
 
     io.add_method("activate_ap", move |_| {
         network::activate_ap()?;
@@ -36,200 +196,89 @@ pub fn run() -> Result<(), BoxError> {
         Ok(Value::String("success".to_string()))
     });
 
-    io.add_method("add_wifi", move |params: Params| {
+    io.add_method("add", move |params: Params| {
         let w: Result<WiFi, Error> = params.parse();
         match w {
-            Ok(w) => match network::add_wifi(&w) {
+            Ok(w) => match network::add(&w) {
                 Ok(_) => Ok(Value::String("success".to_string())),
-                Err(_) => Err(Error::from(NetworkError::AddWifi { ssid: w.ssid })),
+                Err(_) => Err(Error::from(NetworkError::Add { ssid: w.ssid })),
             },
             Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
         }
     });
 
-    io.add_method("disable_wifi", move |params: Params| {
+    io.add_method("check_iface", move |_| {
+        network::check_iface()?;
+
+        Ok(Value::String("success".to_string()))
+    });
+
+    io.add_method("delete", move |params: Params| {
         let i: Result<IfaceId, Error> = params.parse();
         match i {
             Ok(i) => {
                 let id = i.id;
                 let iface = i.iface;
-                match network::disable_wifi(&id, &iface) {
+                match network::delete(&id, &iface) {
                     Ok(_) => Ok(Value::String("success".to_string())),
-                    Err(_) => Err(Error::from(NetworkError::DisableWifi { id, iface })),
+                    Err(_) => Err(Error::from(NetworkError::Delete { id, iface })),
                 }
             }
             Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
         }
     });
 
-    io.add_method("disconnect_wifi", move |params: Params| {
-        let i: Result<Iface, Error> = params.parse();
+    io.add_method("disable", move |params: Params| {
+        let i: Result<IfaceId, Error> = params.parse();
         match i {
             Ok(i) => {
+                let id = i.id;
                 let iface = i.iface;
-                match network::disconnect_wifi(&iface) {
+                match network::disable(&id, &iface) {
                     Ok(_) => Ok(Value::String("success".to_string())),
-                    Err(_) => Err(Error::from(NetworkError::DisconnectWifi { iface })),
+                    Err(_) => Err(Error::from(NetworkError::Disable { id, iface })),
                 }
             }
             Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
         }
     });
 
-    io.add_method("get_id", move |params: Params| {
-        let i: Result<IfaceSsid, Error> = params.parse();
-        match i {
-            Ok(i) => {
-                let iface = i.iface;
-                let ssid = i.ssid;
-                match network::get_id(&iface, &ssid)? {
-                    Some(id) => Ok(Value::String(id)),
-                    None => Err(Error::from(NetworkError::GetId { iface, ssid })),
-                }
-            }
-            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
-        }
-    });
-
-    io.add_method("get_ip", move |params: Params| {
+    io.add_method("disconnect", move |params: Params| {
         let i: Result<Iface, Error> = params.parse();
         match i {
             Ok(i) => {
                 let iface = i.iface;
-                match network::get_ip(&iface)? {
-                    Some(ip) => Ok(Value::String(ip)),
-                    None => Err(Error::from(NetworkError::NoIpFound { iface })),
+                match network::disconnect(&iface) {
+                    Ok(_) => Ok(Value::String("success".to_string())),
+                    Err(_) => Err(Error::from(NetworkError::Disconnect { iface })),
                 }
             }
             Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
         }
     });
 
-    io.add_method("get_rssi", move |params: Params| {
-        let i: Result<Iface, Error> = params.parse();
-        match i {
-            Ok(i) => {
-                let iface = i.iface;
-                match network::get_rssi(&iface)? {
-                    Some(rssi) => Ok(Value::String(rssi)),
-                    None => Err(Error::from(NetworkError::GetRssi { iface })),
-                }
-            }
-            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
-        }
-    });
-
-    io.add_method("get_rssi_percent", move |params: Params| {
-        let i: Result<Iface, Error> = params.parse();
-        match i {
-            Ok(i) => {
-                let iface = i.iface;
-                match network::get_rssi_percent(&iface)? {
-                    Some(rssi) => Ok(Value::String(rssi)),
-                    None => Err(Error::from(NetworkError::GetRssiPercent { iface })),
-                }
-            }
-            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
-        }
-    });
-
-    io.add_method("get_ssid", move |params: Params| {
-        let i: Result<Iface, Error> = params.parse();
-        match i {
-            Ok(i) => {
-                let iface = i.iface;
-                match network::get_ssid(&iface)? {
-                    Some(ip) => Ok(Value::String(ip)),
-                    None => Err(Error::from(NetworkError::GetSsid { iface })),
-                }
-            }
-            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
-        }
-    });
-
-    io.add_method("get_state", move |params: Params| {
-        let i: Result<Iface, Error> = params.parse();
-        match i {
-            Ok(i) => {
-                let iface = i.iface;
-                match network::get_state(&iface)? {
-                    Some(state) => Ok(Value::String(state)),
-                    None => Err(Error::from(NetworkError::GetState { iface })),
-                }
-            }
-            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
-        }
-    });
-
-    io.add_method("get_status", move |params: Params| {
-        let i: Result<Iface, Error> = params.parse();
-        match i {
-            Ok(i) => {
-                let iface = i.iface;
-                match network::get_status(&iface)? {
-                    Some(status) => {
-                        let json_status = json!(status);
-                        Ok(Value::String(json_status.to_string()))
-                    }
-                    None => Err(Error::from(NetworkError::GetStatus { iface })),
-                }
-            }
-            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
-        }
-    });
-
-    io.add_method("get_traffic", move |params: Params| {
-        let i: Result<Iface, Error> = params.parse();
-        match i {
-            Ok(i) => {
-                let iface = i.iface;
-                match network::get_traffic(&iface)? {
-                    Some(traffic) => Ok(Value::String(traffic)),
-                    None => Err(Error::from(NetworkError::GetTraffic { iface })),
-                }
-            }
-            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
-        }
-    });
-
-    io.add_method("if_checker", move |_| {
-        network::run_iface_script()?;
-
-        Ok(Value::String("success".to_string()))
-    });
-
-    io.add_method("list_networks", move |_| {
-        let list = network::list_networks()?;
-        match list {
-            Some(list) => Ok(Value::String(list)),
-            None => Err(Error::from(NetworkError::ListSavedNetworks)),
-        }
-    });
-
-    io.add_method("new_password", move |params: Params| {
+    io.add_method("modify", move |params: Params| {
         let i: Result<IfaceIdPass, Error> = params.parse();
         match i {
             Ok(i) => {
                 let iface = i.iface;
                 let id = i.id;
                 let pass = i.pass;
-                match network::new_password(&iface, &id, &pass) {
+                match network::modify(&iface, &id, &pass) {
                     Ok(_) => Ok(Value::String("success".to_string())),
-                    Err(_) => Err(Error::from(NetworkError::NewPassword { iface, id })),
+                    Err(_) => Err(Error::from(NetworkError::Modify { iface, id })),
                 }
             }
             Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
         }
     });
 
-    io.add_method("ping", |_: Params| Ok(Value::String("success".to_string())));
-
-    io.add_method("reassociate_wifi", move |params: Params| {
+    io.add_method("reassociate", move |params: Params| {
         let i: Result<Iface, Error> = params.parse();
         match i {
             Ok(i) => {
                 let iface = i.iface;
-                match network::reassociate_wifi(&iface) {
+                match network::reassociate(&iface) {
                     Ok(_) => Ok(Value::String("success".to_string())),
                     Err(_) => Err(Error::from(NetworkError::Reassociate { iface })),
                 }
@@ -238,20 +287,17 @@ pub fn run() -> Result<(), BoxError> {
         }
     });
 
-    io.add_method(
-        "reconfigure_wifi",
-        move |_| match network::reconfigure_wifi() {
-            Ok(_) => Ok(Value::String("success".to_string())),
-            Err(_) => Err(Error::from(NetworkError::Reconfigure)),
-        },
-    );
+    io.add_method("reconfigure", move |_| match network::reconfigure() {
+        Ok(_) => Ok(Value::String("success".to_string())),
+        Err(_) => Err(Error::from(NetworkError::Reconfigure)),
+    });
 
-    io.add_method("reconnect_wifi", move |params: Params| {
+    io.add_method("reconnect", move |params: Params| {
         let i: Result<Iface, Error> = params.parse();
         match i {
             Ok(i) => {
                 let iface = i.iface;
-                match network::reconnect_wifi(&iface) {
+                match network::reconnect(&iface) {
                     Ok(_) => Ok(Value::String("success".to_string())),
                     Err(_) => Err(Error::from(NetworkError::Reconnect { iface })),
                 }
@@ -260,49 +306,20 @@ pub fn run() -> Result<(), BoxError> {
         }
     });
 
-    io.add_method("remove_wifi", move |params: Params| {
-        let i: Result<IfaceId, Error> = params.parse();
-        match i {
-            Ok(i) => {
-                let id = i.id;
-                let iface = i.iface;
-                match network::remove_wifi(&id, &iface) {
-                    Ok(_) => Ok(Value::String("success".to_string())),
-                    Err(_) => Err(Error::from(NetworkError::RemoveWifi { id, iface })),
-                }
-            }
-            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
-        }
-    });
-
-    io.add_method("save_config", move |_| match network::save_config() {
+    io.add_method("save", move |_| match network::save() {
         Ok(_) => Ok(Value::String("success".to_string())),
-        Err(_) => Err(Error::from(NetworkError::SaveConfig)),
+        Err(_) => Err(Error::from(NetworkError::Save)),
     });
 
-    io.add_method("scan_networks", move |params: Params| {
-        let i: Result<Iface, Error> = params.parse();
-        match i {
-            Ok(i) => {
-                let iface = i.iface;
-                match network::scan_networks(&iface)? {
-                    Some(list) => Ok(Value::String(list)),
-                    None => Err(Error::from(NetworkError::ListScanResults { iface })),
-                }
-            }
-            Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
-        }
-    });
-
-    io.add_method("select_network", move |params: Params| {
+    io.add_method("connect", move |params: Params| {
         let i: Result<IfaceId, Error> = params.parse();
         match i {
             Ok(i) => {
                 let id = i.id;
                 let iface = i.iface;
-                match network::select_network(&id, &iface) {
+                match network::connect(&id, &iface) {
                     Ok(_) => Ok(Value::String("success".to_string())),
-                    Err(_) => Err(Error::from(NetworkError::SelectNetwork { id, iface })),
+                    Err(_) => Err(Error::from(NetworkError::Connect { id, iface })),
                 }
             }
             Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
@@ -350,7 +367,7 @@ mod tests {
         assert_eq!(rpc.request("rpc_success_response", &()), r#""success""#);
     }
 
-    // test to ensure correct parse error response for rpc parameters
+    // test to ensure correct MissingParams parse error
     #[test]
     fn rpc_parse_error() {
         let rpc = {
@@ -375,13 +392,13 @@ mod tests {
         );
     }
 
-    // test to ensure correct addwifi error response
+    // test to ensure correct Add error response
     #[test]
-    fn rpc_addwifi_error() {
+    fn rpc_add_error() {
         let rpc = {
             let mut io = IoHandler::new();
-            io.add_method("rpc_addwifi_error", |_| {
-                Err(Error::from(NetworkError::AddWifi {
+            io.add_method("rpc_add_error", |_| {
+                Err(Error::from(NetworkError::Add {
                     ssid: "Home".to_string(),
                 }))
             });
@@ -389,7 +406,7 @@ mod tests {
         };
 
         assert_eq!(
-            rpc.request("rpc_addwifi_error", &()),
+            rpc.request("rpc_add_error", &()),
             r#"{
   "code": -32000,
   "message": "Failed to add network for Home"
@@ -397,13 +414,13 @@ mod tests {
         );
     }
 
-    // test to ensure correct disable_wifi error response
+    // test to ensure correct Disable error response
     #[test]
-    fn rpc_disablewifi_error() {
+    fn rpc_disable_error() {
         let rpc = {
             let mut io = IoHandler::new();
-            io.add_method("rpc_disablewifi_error", |_| {
-                Err(Error::from(NetworkError::DisableWifi {
+            io.add_method("rpc_disable_error", |_| {
+                Err(Error::from(NetworkError::Disable {
                     id: "0".to_string(),
                     iface: "wlan0".to_string(),
                 }))
@@ -412,7 +429,7 @@ mod tests {
         };
 
         assert_eq!(
-            rpc.request("rpc_disablewifi_error", &()),
+            rpc.request("rpc_disable_error", &()),
             r#"{
   "code": -32029,
   "message": "Failed to disable network 0 for wlan0"
@@ -420,13 +437,13 @@ mod tests {
         );
     }
 
-    // test to ensure correct disconnect_wifi error response
+    // test to ensure correct Disconnect error response
     #[test]
-    fn rpc_disconnectwifi_error() {
+    fn rpc_disconnect_error() {
         let rpc = {
             let mut io = IoHandler::new();
-            io.add_method("rpc_disconnectwifi_error", |_| {
-                Err(Error::from(NetworkError::DisconnectWifi {
+            io.add_method("rpc_disconnect_error", |_| {
+                Err(Error::from(NetworkError::Disconnect {
                     iface: "wlan0".to_string(),
                 }))
             });
@@ -434,7 +451,7 @@ mod tests {
         };
 
         assert_eq!(
-            rpc.request("rpc_disconnectwifi_error", &()),
+            rpc.request("rpc_disconnect_error", &()),
             r#"{
   "code": -32032,
   "message": "Failed to disconnect wlan0"
@@ -442,7 +459,7 @@ mod tests {
         );
     }
 
-    // test to ensure correct genwpapassphrase error response
+    // test to ensure correct GenWpaPassphrase error response
     #[test]
     fn rpc_genwpapassphrase_error() {
         let rpc = {
@@ -465,13 +482,13 @@ mod tests {
         );
     }
 
-    // test to ensure correct getid error response
+    // test to ensure correct Id error response
     #[test]
-    fn rpc_getid_error() {
+    fn rpc_id_error() {
         let rpc = {
             let mut io = IoHandler::new();
-            io.add_method("rpc_getid_error", |_| {
-                Err(Error::from(NetworkError::GetId {
+            io.add_method("rpc_id_error", |_| {
+                Err(Error::from(NetworkError::Id {
                     iface: "wlan0".to_string(),
                     ssid: "Home".to_string(),
                 }))
@@ -480,7 +497,7 @@ mod tests {
         };
 
         assert_eq!(
-            rpc.request("rpc_getid_error", &()),
+            rpc.request("rpc_id_error", &()),
             r#"{
   "code": -32026,
   "message": "No ID found for Home on interface wlan0"
@@ -488,13 +505,13 @@ mod tests {
         );
     }
 
-    // test to ensure correct getip error response
+    // test to ensure correct NoIp error response
     #[test]
-    fn rpc_getip_error() {
+    fn rpc_noip_error() {
         let rpc = {
             let mut io = IoHandler::new();
-            io.add_method("rpc_getip_error", |_| {
-                Err(Error::from(NetworkError::GetIp {
+            io.add_method("rpc_noip_error", |_| {
+                Err(Error::from(NetworkError::NoIp {
                     iface: "wlan7".to_string(),
                     source: IoError::new(ErrorKind::AddrNotAvailable, "oh no!"),
                 }))
@@ -503,7 +520,7 @@ mod tests {
         };
 
         assert_eq!(
-            rpc.request("rpc_getip_error", &()),
+            rpc.request("rpc_noip_error", &()),
             r#"{
   "code": -32001,
   "message": "Failed to retrieve IP address for wlan7: oh no!"
@@ -511,13 +528,13 @@ mod tests {
         );
     }
 
-    // test to ensure correct getrssi error response
+    // test to ensure correct Rssi error response
     #[test]
-    fn rpc_getrssi_error() {
+    fn rpc_rssi_error() {
         let rpc = {
             let mut io = IoHandler::new();
-            io.add_method("rpc_getrssi_error", |_| {
-                Err(Error::from(NetworkError::GetRssi {
+            io.add_method("rpc_rssi_error", |_| {
+                Err(Error::from(NetworkError::Rssi {
                     iface: "wlan0".to_string(),
                 }))
             });
@@ -525,7 +542,7 @@ mod tests {
         };
 
         assert_eq!(
-            rpc.request("rpc_getrssi_error", &()),
+            rpc.request("rpc_rssi_error", &()),
             r#"{
   "code": -32002,
   "message": "Failed to retrieve RSSI for wlan0. Interface may not be connected"
@@ -533,13 +550,13 @@ mod tests {
         );
     }
 
-    // test to ensure correct getrssipercent error response
+    // test to ensure correct RssiPercent error response
     #[test]
-    fn rpc_getrssipercent_error() {
+    fn rpc_rssipercent_error() {
         let rpc = {
             let mut io = IoHandler::new();
-            io.add_method("rpc_getrssipercent_error", |_| {
-                Err(Error::from(NetworkError::GetRssiPercent {
+            io.add_method("rpc_rssipercent_error", |_| {
+                Err(Error::from(NetworkError::RssiPercent {
                     iface: "wlan0".to_string(),
                 }))
             });
@@ -547,7 +564,7 @@ mod tests {
         };
 
         assert_eq!(
-            rpc.request("rpc_getrssipercent_error", &()),
+            rpc.request("rpc_rssipercent_error", &()),
             r#"{
   "code": -32034,
   "message": "Failed to retrieve signal quality (%) for wlan0. Interface may not be connected"
@@ -555,13 +572,13 @@ mod tests {
         );
     }
 
-    // test to ensure correct getssid error response
+    // test to ensure correct Ssid error response
     #[test]
-    fn rpc_getssid_error() {
+    fn rpc_ssid_error() {
         let rpc = {
             let mut io = IoHandler::new();
-            io.add_method("rpc_getssid_error", |_| {
-                Err(Error::from(NetworkError::GetSsid {
+            io.add_method("rpc_ssid_error", |_| {
+                Err(Error::from(NetworkError::Ssid {
                     iface: "wlan0".to_string(),
                 }))
             });
@@ -569,7 +586,7 @@ mod tests {
         };
 
         assert_eq!(
-            rpc.request("rpc_getssid_error", &()),
+            rpc.request("rpc_ssid_error", &()),
             r#"{
   "code": -32003,
   "message": "Failed to retrieve SSID for wlan0. Interface may not be connected"
@@ -577,13 +594,13 @@ mod tests {
         );
     }
 
-    // test to ensure correct getstate error response
+    // test to ensure correct State error response
     #[test]
-    fn rpc_getstate_error() {
+    fn rpc_state_error() {
         let rpc = {
             let mut io = IoHandler::new();
-            io.add_method("rpc_getstate_error", |_| {
-                Err(Error::from(NetworkError::GetState {
+            io.add_method("rpc_state_error", |_| {
+                Err(Error::from(NetworkError::State {
                     iface: "wlan1".to_string(),
                 }))
             });
@@ -591,7 +608,7 @@ mod tests {
         };
 
         assert_eq!(
-            rpc.request("rpc_getstate_error", &()),
+            rpc.request("rpc_state_error", &()),
             r#"{
   "code": -32023,
   "message": "No state found for wlan1. Interface may not exist"
@@ -599,13 +616,13 @@ mod tests {
         );
     }
 
-    // test to ensure correct gettraffic error response
+    // test to ensure correct Traffic error response
     #[test]
-    fn rpc_gettraffic_error() {
+    fn rpc_traffic_error() {
         let rpc = {
             let mut io = IoHandler::new();
-            io.add_method("rpc_gettraffic_error", |_| {
-                Err(Error::from(NetworkError::GetTraffic {
+            io.add_method("rpc_traffic_error", |_| {
+                Err(Error::from(NetworkError::Traffic {
                     iface: "wlan0".to_string(),
                 }))
             });
@@ -613,7 +630,7 @@ mod tests {
         };
 
         assert_eq!(
-            rpc.request("rpc_gettraffic_error", &()),
+            rpc.request("rpc_traffic_error", &()),
             r#"{
   "code": -32004,
   "message": "No network traffic statistics found for wlan0. Interface may not exist"
@@ -621,19 +638,19 @@ mod tests {
         );
     }
 
-    // test to ensure correct listsavednetworks error response
+    // test to ensure correct SavedNetworks error response
     #[test]
-    fn rpc_listsavednetworks_error() {
+    fn rpc_savednetworks_error() {
         let rpc = {
             let mut io = IoHandler::new();
-            io.add_method("rpc_listsavednetworks_error", |_| {
-                Err(Error::from(NetworkError::ListSavedNetworks))
+            io.add_method("rpc_savednetworks_error", |_| {
+                Err(Error::from(NetworkError::SavedNetworks))
             });
             test::Rpc::from(io)
         };
 
         assert_eq!(
-            rpc.request("rpc_listsavednetworks_error", &()),
+            rpc.request("rpc_savednetworks_error", &()),
             r#"{
   "code": -32005,
   "message": "No saved networks found"
@@ -641,13 +658,13 @@ mod tests {
         );
     }
 
-    // test to ensure correct listscanresults error response
+    // test to ensure correct AvailableNetworks error response
     #[test]
-    fn rpc_listscanresults_error() {
+    fn rpc_availablenetworks_error() {
         let rpc = {
             let mut io = IoHandler::new();
-            io.add_method("rpc_listscanresults_error", |_| {
-                Err(Error::from(NetworkError::ListScanResults {
+            io.add_method("rpc_availablenetworks_error", |_| {
+                Err(Error::from(NetworkError::AvailableNetworks {
                     iface: "wlan0".to_string(),
                 }))
             });
@@ -655,7 +672,7 @@ mod tests {
         };
 
         assert_eq!(
-            rpc.request("rpc_listscanresults_error", &()),
+            rpc.request("rpc_availablenetworks_error", &()),
             r#"{
   "code": -32006,
   "message": "No networks found in range of wlan0"
@@ -663,7 +680,7 @@ mod tests {
         );
     }
 
-    // test to ensure correct missingparams error response
+    // test to ensure correct MissingParams error response
     #[test]
     fn rpc_missingparams_error() {
         let rpc = {
@@ -690,13 +707,13 @@ mod tests {
         );
     }
 
-    // test to ensure correct new_password error response
+    // test to ensure correct Modify error response
     #[test]
-    fn rpc_newpassword_error() {
+    fn rpc_modify_error() {
         let rpc = {
             let mut io = IoHandler::new();
-            io.add_method("rpc_newpassword_error", |_| {
-                Err(Error::from(NetworkError::NewPassword {
+            io.add_method("rpc_modify_error", |_| {
+                Err(Error::from(NetworkError::Modify {
                     id: "1".to_string(),
                     iface: "wlan0".to_string(),
                 }))
@@ -705,7 +722,7 @@ mod tests {
         };
 
         assert_eq!(
-            rpc.request("rpc_newpassword_error", &()),
+            rpc.request("rpc_modify_error", &()),
             r#"{
   "code": -32033,
   "message": "Failed to set new password for network 1 on wlan0"
@@ -713,13 +730,13 @@ mod tests {
         );
     }
 
-    // test to ensure correct noipfound error response
+    // test to ensure correct Ip error response
     #[test]
-    fn rpc_noipfound_error() {
+    fn rpc_ip_error() {
         let rpc = {
             let mut io = IoHandler::new();
-            io.add_method("rpc_noipfound_error", |_| {
-                Err(Error::from(NetworkError::NoIpFound {
+            io.add_method("rpc_ip_error", |_| {
+                Err(Error::from(NetworkError::Ip {
                     iface: "wlan0".to_string(),
                 }))
             });
@@ -727,7 +744,7 @@ mod tests {
         };
 
         assert_eq!(
-            rpc.request("rpc_noipfound_error", &()),
+            rpc.request("rpc_ip_error", &()),
             r#"{
   "code": -32007,
   "message": "No IP address found for wlan0"
@@ -735,7 +752,7 @@ mod tests {
         );
     }
 
-    // test to ensure correct reassociate error response
+    // test to ensure correct Reassociate error response
     #[test]
     fn rpc_reassociate_error() {
         let rpc = {
@@ -757,7 +774,7 @@ mod tests {
         );
     }
 
-    // test to ensure correct reconfigure error response
+    // test to ensure correct Reconfigure error response
     #[test]
     fn rpc_reconfigure_error() {
         let rpc = {
@@ -777,13 +794,13 @@ mod tests {
         );
     }
 
-    // test to ensure correct select_network error response
+    // test to ensure correct Connect error response
     #[test]
-    fn rpc_selectnetwork_error() {
+    fn rpc_connect_error() {
         let rpc = {
             let mut io = IoHandler::new();
-            io.add_method("rpc_selectnetwork_error", |_| {
-                Err(Error::from(NetworkError::SelectNetwork {
+            io.add_method("rpc_connect_error", |_| {
+                Err(Error::from(NetworkError::Connect {
                     id: "0".to_string(),
                     iface: "wlan0".to_string(),
                 }))
@@ -792,15 +809,15 @@ mod tests {
         };
 
         assert_eq!(
-            rpc.request("rpc_selectnetwork_error", &()),
+            rpc.request("rpc_connect_error", &()),
             r#"{
   "code": -32027,
-  "message": "Failed to select network 0 for wlan0"
+  "message": "Failed to connect to network 0 for wlan0"
 }"#
         );
     }
 
-    // test to ensure correct reconnect error response
+    // test to ensure correct Reconnect error response
     #[test]
     fn rpc_reconnect_error() {
         let rpc = {
@@ -822,7 +839,7 @@ mod tests {
         );
     }
 
-    // test to ensure correct regex error response
+    // test to ensure correct Regex error response
     #[test]
     fn rpc_regex_error() {
         let rpc = {
@@ -843,13 +860,13 @@ mod tests {
         );
     }
 
-    // test to ensure correct remove_network error response
+    // test to ensure correct Delete error response
     #[test]
-    fn rpc_removenetwork_error() {
+    fn rpc_delete_error() {
         let rpc = {
             let mut io = IoHandler::new();
-            io.add_method("rpc_removenetwork_error", |_| {
-                Err(Error::from(NetworkError::RemoveWifi {
+            io.add_method("rpc_delete_error", |_| {
+                Err(Error::from(NetworkError::Delete {
                     id: "0".to_string(),
                     iface: "wlan0".to_string(),
                 }))
@@ -858,28 +875,28 @@ mod tests {
         };
 
         assert_eq!(
-            rpc.request("rpc_removenetwork_error", &()),
+            rpc.request("rpc_delete_error", &()),
             r#"{
   "code": -32028,
-  "message": "Failed to remove network 0 for wlan0"
+  "message": "Failed to delete network 0 for wlan0"
 }"#
         );
     }
 
-    // test to ensure correct runapclientscript error response
+    // test to ensure correct CheckIface error response
     #[test]
-    fn rpc_runapclientscript_error() {
+    fn rpc_checkiface_error() {
         let rpc = {
             let mut io = IoHandler::new();
-            io.add_method("rpc_runapclientscript_error", |_| {
+            io.add_method("rpc_checkiface_error", |_| {
                 let source = IoError::new(ErrorKind::PermissionDenied, "oh no!");
-                Err(Error::from(NetworkError::RunApClientScript { source }))
+                Err(Error::from(NetworkError::CheckIface { source }))
             });
             test::Rpc::from(io)
         };
 
         assert_eq!(
-            rpc.request("rpc_runapclientscript_error", &()),
+            rpc.request("rpc_checkiface_error", &()),
             r#"{
   "code": -32011,
   "message": "Failed to run interface_checker script: oh no!"
@@ -887,22 +904,41 @@ mod tests {
         );
     }
 
-    // test to ensure correct save_config error response
+    // test to ensure correct Save error response
     #[test]
-    fn rpc_saveconfig_error() {
+    fn rpc_save_error() {
         let rpc = {
             let mut io = IoHandler::new();
-            io.add_method("rpc_saveconfig", |_| {
-                Err(Error::from(NetworkError::SaveConfig))
+            io.add_method("rpc_save_error", |_| Err(Error::from(NetworkError::Save)));
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_save_error", &()),
+            r#"{
+  "code": -32031,
+  "message": "Failed to save configuration changes to file"
+}"#
+        );
+    }
+
+    // test to ensure correct SetApInterfaceUp error response
+    #[test]
+    fn rpc_setapinterfaceup_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_setapinterfaceup_error", |_| {
+                let source = IoError::new(ErrorKind::PermissionDenied, "oh no!");
+                Err(Error::from(NetworkError::SetApInterfaceUp { source }))
             });
             test::Rpc::from(io)
         };
 
         assert_eq!(
-            rpc.request("rpc_saveconfig", &()),
+            rpc.request("rpc_setapinterfaceup_error", &()),
             r#"{
-  "code": -32031,
-  "message": "Failed to save configuration changes to file"
+  "code": -32036,
+  "message": "Failed to set ap0 interface up: oh no!"
 }"#
         );
     }
@@ -991,7 +1027,28 @@ mod tests {
         );
     }
 
-    // test to ensure correct wpactrlopen error response
+    // test to ensure correct UnmaskHostapd error response
+    #[test]
+    fn rpc_unmaskhostapd_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_unmaskhostapd_error", |_| {
+                let source = IoError::new(ErrorKind::PermissionDenied, "oh no!");
+                Err(Error::from(NetworkError::UnmaskHostapd { source }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_unmaskhostapd_error", &()),
+            r#"{
+  "code": -32037,
+  "message": "Failed to unmask hostapd process: oh no!"
+}"#
+        );
+    }
+
+    // test to ensure correct WpaCtrlOpen error response
     #[test]
     fn rpc_wpactrlopen_error() {
         let rpc = {
@@ -1013,7 +1070,7 @@ mod tests {
         );
     }
 
-    // test to ensure correct wpactrlrequest error response
+    // test to ensure correct WpaCtrlRequest error response
     #[test]
     fn rpc_wpactrlrequest_error() {
         let rpc = {

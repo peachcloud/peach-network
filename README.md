@@ -10,32 +10,43 @@ _Note: This module is a work-in-progress._
 
 ### JSON-RPC API
 
+Methods for **retrieving data**:
+
+| Method | Parameters | Description |
+| --- | --- | --- |
+| `available_networks` | `iface` | List SSID, flags (security), frequency and signal level for all networks in range of given interface |
+| `id` | `iface`, `ssid` | Return ID of given SSID |
+| `ip` | `iface` | Return IP of given network interface |
+| `ping` | | Respond with `success` if microservice is running |
+| `rssi` | `iface` | Return average signal strength (dBm) for given interface |
+| `rssi_percent` | `iface` | Return average signal strength (%) for given interface |
+| `saved_networks` | | List all networks saved in wpasupplicant config |
+| `ssid` | `iface` | Return SSID of currently-connected network for given interface |
+| `state` | `iface` | Return state of given interface |
+| `status` | `iface` | Return status parameters for given interface |
+| `traffic` | `iface` | Return network traffic for given interface |
+
+Methods for **modifying state**:
+
 | Method | Parameters | Description |
 | --- | --- | --- |
 | `activate_ap` | | Activate WiFi access point (stop `wpa_supplicant` and start `hostapd` and `dnsmasq`) |
 | `activate_client` | | Activate WiFi client connection (stop `hostapd` and `dnsmasq` and start `wpa_supplicant`) |
-| `add_wifi` | `ssid`, `pass` | Add WiFi credentials to `wpa_supplicant.conf` |
-| `disable_wifi` | `id`, `iface` | Disable connection with AP represented by given id |
-| `disconnect_wifi` | `iface` | Disconnect given interface |
-| `get_id` | `iface`, `ssid` | Return ID of given SSID |
-| `get_ip` | `iface` | Return IP of given network interface |
-| `get_rssi` | `iface` | Return average signal strength (dBm) for given interface |
-| `get_rssi_percent` | `iface` | Return average signal strength (%) for given interface |
-| `get_ssid` | `iface` | Return SSID of currently-connected network for given interface |
-| `get_state` | `iface` | Return state of given interface |
-| `get_status` | `iface` | Return status parameters for given interface |
-| `get_traffic` | `iface` | Return network traffic for given interface |
-| `if_checker` | | Run AP / client-mode configuration script |
-| `list_networks` | | List all networks saved in wpasupplicant config |
-| `new_password` | `id`, `iface`, `password` | Set a new password for given network id and interface |
-| `ping` | | Respond with `success` if microservice is running |
-| `reassociate_wifi` | `iface` | Reassociate with current AP for given interface |
-| `reconfigure_wifi` | | Force wpa_supplicant to re-read its configuration file |
-| `reconnect_wifi` | `iface` | Disconnect and reconnect given interface |
-| `remove_wifi` | `id`, `iface` | Remove WiFi credentials for given network id and interface |
-| `save_config` | | Save configuration changes to `wpa_supplicant.conf` |
-| `scan_networks` | `iface` | List SSID, flags (security), frequency and signal level for all networks in range of given interface |
-| `select_network` | `id`, `iface` | Disable other networks and attempt connection with AP represented by given id |
+| `add` | `ssid`, `pass` | Add WiFi credentials to `wpa_supplicant.conf` |
+| `check_iface` | | Run AP / client-mode configuration script |
+| `connect` | `id`, `iface` | Disable other networks and attempt connection with AP represented by given id |
+| `delete` | `id`, `iface` | Remove WiFi credentials for given network id and interface |
+| `disable` | `id`, `iface` | Disable connection with AP represented by given id |
+| `disconnect` | `iface` | Disconnect given interface |
+| `modify` | `id`, `iface`, `password` | Set a new password for given network id and interface |
+| `reassociate` | `iface` | Reassociate with current AP for given interface |
+| `reconfigure` | | Force wpa_supplicant to re-read its configuration file |
+| `reconnect` | `iface` | Disconnect and reconnect given interface |
+| `save` | | Save configuration changes to `wpa_supplicant.conf` |
+
+### API Documentation
+
+API documentation can be built and served with `cargo doc --no-deps --open`. This set of documentation is intended for developers who wish to work on the project or better understand the API of the `src/network.rs` module.
 
 ### Environment
 
@@ -104,7 +115,7 @@ Remove configuration files (not removed with `apt-get remove`):
 
 With microservice running, open a second terminal window and use `curl` to call server methods:
 
-`curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "get_ip", "params" : {"iface": "wlan0" }, "id":1 }' 127.0.0.1:5110`
+`curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "ip", "params" : {"iface": "wlan0" }, "id":1 }' 127.0.0.1:5110`
 
 Server responds with:
 
@@ -112,7 +123,7 @@ Server responds with:
 
 **Retrieve SSID of connected access point for wlan1**
 
-`curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "get_ssid", "params" : {"iface": "wlan1" }, "id":1 }' 127.0.0.1:5110`
+`curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "ssid", "params" : {"iface": "wlan1" }, "id":1 }' 127.0.0.1:5110`
 
 Server response when interface is connected:
 
@@ -124,7 +135,7 @@ Server response when interface is not connected:
 
 **Retrieve list of SSIDs for all networks in range of wlan0**
 
-`curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "scan_networks", "params" : {"iface": "wlan0" }, "id":1 }' 127.0.0.1:5110`
+`curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "available_networks", "params" : {"iface": "wlan0" }, "id":1 }' 127.0.0.1:5110`
 
 Server response when interface is connected:
 
@@ -136,7 +147,7 @@ Server response when interface is not connected:
 
 **Retrieve network traffic statistics for wlan1**
 
-`curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "get_traffic", "params" : {"iface": "wlan1" }, "id":1 }' 127.0.0.1:5110`
+`curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "traffic", "params" : {"iface": "wlan1" }, "id":1 }' 127.0.0.1:5110`
 
 Server response if interface exists:
 
@@ -148,7 +159,7 @@ Server response when interface is not found:
 
 **Retrieve status information for wlan0**
 
-`curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "get_status", "params" : {"iface": "wlan0" }, "id":1 }' 127.0.0.1:5110`
+`curl -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "status", "params" : {"iface": "wlan0" }, "id":1 }' 127.0.0.1:5110`
 
 Server response if interface exists:
 
