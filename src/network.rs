@@ -7,7 +7,12 @@
 //!
 //! The `wpactrl` crate ([docs](https://docs.rs/wpactrl/0.3.1/wpactrl/))
 //! is used to interact with the `wpasupplicant` process.
-
+//!
+//! Further networking functionality is provided by executing scripts as
+//! subprocesses, such as `activate_ap` and `activate_client`, as well as making
+//! system calls to retrieve interface state and write access point credentials
+//! to `wpa_supplicant.conf`.
+//!
 extern crate get_if_addrs;
 extern crate regex;
 extern crate wpactrl;
