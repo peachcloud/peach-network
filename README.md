@@ -44,6 +44,10 @@ Methods for **modifying state**:
 | `reconnect` | `iface` | Disconnect and reconnect given interface |
 | `save` | | Save configuration changes to `wpa_supplicant.conf` |
 
+### API Documentation
+
+API documentation can be built and served with `cargo doc --no-deps --open`. This set of documentation is intended for developers who wish to work on the project or better understand the API of the `src/network.rs` module.
+
 ### Environment
 
 The JSON-RPC HTTP server address and port can be configured with the `PEACH_NETWORK_SERVER` environment variable:
