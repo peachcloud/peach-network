@@ -84,14 +84,14 @@ pub struct IfaceStatus {
 
 // activate wifi access point
 pub fn activate_ap() -> Result<(), NetworkError> {
-    // systemctl stop wpa_supplicant
+    // stop wpa_supplicant
     Command::new("sudo")
         .arg("/usr/bin/systemctl")
         .arg("stop")
         .arg("wpa_supplicant")
         .output()
         .context(StopWpaSupplicant)?;
-    // ifdown wlan0
+    // set wlan0 down
     Command::new("sudo")
         .arg("/usr/sbin/ifdown")
         .arg("wlan0")
@@ -104,50 +104,48 @@ pub fn activate_ap() -> Result<(), NetworkError> {
         .arg("hostapd")
         .output()
         .context(UnmaskHostapd)?;
-    // systemctl start hostapd
+    // start hostapd
     Command::new("sudo")
         .arg("/usr/bin/systemctl")
         .arg("start")
         .arg("hostapd")
         .output()
         .context(StartHostapd)?;
-    // systemctl start dnsmasq
+    // start dnsmasq
     Command::new("sudo")
         .arg("/usr/bin/systemctl")
         .arg("start")
         .arg("dnsmasq")
         .output()
         .context(StartDnsmasq)?;
-    // set ap0 interface up
-    Command::new("sudo")
-        .arg("/usr/bin/ip")
-        .arg("link")
-        .arg("set")
-        .arg("ap0")
-        .arg("up")
-        .output()
-        .context(SetApInterfaceUp)?;
 
     Ok(())
 }
 
 // activate wifi client connection
 pub fn activate_client() -> Result<(), NetworkError> {
-    // systemctl stop hostap
+    // stop hostap
     Command::new("sudo")
         .arg("/usr/bin/systemctl")
         .arg("stop")
         .arg("hostapd")
         .output()
         .context(StopHostapd)?;
-    // systemctl stop dnsmasq
+    // stop dnsmasq
     Command::new("sudo")
         .arg("/usr/bin/systemctl")
         .arg("stop")
         .arg("dnsmasq")
         .output()
         .context(StopDnsmasq)?;
-    // ifup wlan0
+    // start wpa_supplicant
+    Command::new("sudo")
+        .arg("/usr/bin/systemctl")
+        .arg("stop")
+        .arg("wpa_supplicant")
+        .output()
+        .context(StopWpaSupplicant)?;
+    // set wlan0 up
     Command::new("sudo")
         .arg("/usr/sbin/ifup")
         .arg("wlan0")
