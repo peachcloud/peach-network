@@ -85,7 +85,7 @@ pub fn run() -> Result<(), BoxError> {
         }
     });
 
-    io.add_method("ping", |_: Params| Ok(Value::String("success".to_string())));
+    io.add_method("ping", |_| Ok(Value::String("success".to_string())));
 
     io.add_method("rssi", move |params: Params| {
         let i: Result<Iface, Error> = params.parse();
