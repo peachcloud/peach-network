@@ -362,14 +362,8 @@ pub fn ssid(iface: &str) -> Result<Option<String>, NetworkError> {
     let caps = re.captures(&status);
     let ssid = match caps {
         Some(caps) => {
-            let ssid_name = &mut caps[0].to_string();
-            // split ssid_name at 6th character
-            // & assign 2nd half to ssid
-            let mut ssid = ssid_name.split_off(6);
-            let len = ssid.len();
-            // remove newline character
-            ssid.truncate(len - 1);
-            Some(ssid)
+            // caps[1] contains inner regex match, ie. the network ssid
+            Some(caps[1].to_string())
         }
         None => None,
     };
