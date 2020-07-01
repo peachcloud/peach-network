@@ -12,7 +12,7 @@
 //! `src/main.rs` initializes the logger, starts the application and catches
 //! application errors, while `src/lib.rs` contains the JSON-RPC server, RPC
 //! methods, HTTP server and tests.
-
+//!
 #[macro_use]
 extern crate log;
 extern crate get_if_addrs;

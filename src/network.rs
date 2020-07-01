@@ -674,6 +674,7 @@ pub fn check_iface() -> Result<(), NetworkError> {
 }
 
 /// Connect with an access point for a given network identifier and interface.
+/// Results in connections with other access points being disabled.
 ///
 /// # Arguments
 ///
@@ -855,7 +856,6 @@ pub fn reconnect(iface: &str) -> Result<(), NetworkError> {
     Ok(())
 }
 
-// save configuration updates to wpa_supplicant config file
 /// Save configuration updates to the `wpa_supplicant` configuration file.
 ///
 /// If wireless network configuration updates are successfully save to the
