@@ -5,6 +5,7 @@ Description=Query and configure network interfaces using JSON-RPC over HTTP.
 Type=simple
 User=root
 Group=root
+Environment="RUST_LOG=error"
 ExecStart=/usr/bin/peach-network
 Restart=always
 
