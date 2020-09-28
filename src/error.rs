@@ -104,6 +104,9 @@ pub enum NetworkError {
     #[snafu(display("Failed to set ap0 interface up: {}", source))]
     SetApInterfaceUp { source: io::Error },
 
+    #[snafu(display("Failed to set the wlan0 interface mode to default: {}", source))]
+    SetWlanInterfaceDefault { source: io::Error },
+
     #[snafu(display("Failed to set the wlan0 interface down: {}", source))]
     SetWlanInterfaceDown { source: io::Error },
 
@@ -309,6 +312,11 @@ impl From<NetworkError> for Error {
             NetworkError::SetApInterfaceUp { source } => Error {
                 code: ErrorCode::ServerError(-32036),
                 message: format!("Failed to set ap0 interface up: {}", source),
+                data: None,
+            },
+            NetworkError::SetWlanInterfaceDefault { source } => Error {
+                code: ErrorCode::ServerError(-32038),
+                message: format!("Failed to set wlan0 interface mode to default: {}", source),
                 data: None,
             },
             NetworkError::SetWlanInterfaceDown { source } => Error {

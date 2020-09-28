@@ -606,6 +606,16 @@ pub fn activate_client() -> Result<(), NetworkError> {
         .arg("wlan0")
         .output()
         .context(SetWlanInterfaceUp)?;
+    // set wlan0 mode to default (prevent dormant bug)
+    Command::new("sudo")
+        .arg("/bin/ip")
+        .arg("link")
+        .arg("set")
+        .arg("wlan0")
+        .arg("mode")
+        .arg("default")
+        .output()
+        .context(SetWlanInterfaceDefault)?;
 
     Ok(())
 }
