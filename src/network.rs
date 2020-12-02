@@ -13,10 +13,6 @@
 //! system calls to retrieve interface state and write access point credentials
 //! to `wpa_supplicant.conf`.
 //!
-extern crate get_if_addrs;
-extern crate regex;
-extern crate wpactrl;
-
 use std::{
     fs::OpenOptions,
     io::prelude::*,
