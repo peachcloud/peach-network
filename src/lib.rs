@@ -13,11 +13,6 @@
 //! application errors, while `src/lib.rs` contains the JSON-RPC server, RPC
 //! methods, HTTP server and tests.
 //!
-#[macro_use]
-extern crate log;
-extern crate get_if_addrs;
-extern crate wpactrl;
-
 mod error;
 pub mod network;
 
@@ -28,6 +23,7 @@ use jsonrpc_core::{types::error::Error, IoHandler, Params, Value};
 use jsonrpc_http_server::{AccessControlAllowOrigin, DomainsValidation, ServerBuilder};
 #[allow(unused_imports)]
 use jsonrpc_test as test;
+use log::info;
 use serde_json::json;
 
 use crate::error::{BoxError, NetworkError};
