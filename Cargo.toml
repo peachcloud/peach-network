@@ -28,15 +28,15 @@ maintenance = { status = "actively-developed" }
 
 [dependencies]
 env_logger = "0.6"
-failure = "0.1.5"
+failure = "0.1"
 get_if_addrs = "0.5.3"
-jsonrpc-core = "13.0.0"
-jsonrpc-http-server = "13.0.0"
-jsonrpc-test = "13.0.0"
+jsonrpc-core = "15"
+jsonrpc-http-server = "15"
+jsonrpc-test = "15"
 log = "0.4"
-probes = "0.3"
-serde = { version = "1.0.99", features = ["derive"] }
-serde_json = "1.0"
-snafu = "0.4"
+probes = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+snafu = "0.6"
 regex = "1"
 wpactrl = "0.3.1"
