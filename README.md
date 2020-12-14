@@ -1,6 +1,6 @@
 # peach-network
 
-[![Build Status](https://travis-ci.com/peachcloud/peach-network.svg?branch=master)](https://travis-ci.com/peachcloud/peach-network) ![Generic badge](https://img.shields.io/badge/version-0.2.1-<COLOR>.svg)
+[![Build Status](https://travis-ci.com/peachcloud/peach-network.svg?branch=master)](https://travis-ci.com/peachcloud/peach-network) ![Generic badge](https://img.shields.io/badge/version-0.2.2-<COLOR>.svg)
 
 Networking microservice module for PeachCloud. Query and configure device interfaces using [JSON-RPC](https://www.jsonrpc.org/specification) over http.
 
