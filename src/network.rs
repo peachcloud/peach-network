@@ -592,7 +592,7 @@ pub fn activate_client() -> Result<(), NetworkError> {
     // start wpa_supplicant
     Command::new("sudo")
         .arg("/usr/bin/systemctl")
-        .arg("stop")
+        .arg("start")
         .arg("wpa_supplicant")
         .output()
         .context(StopWpaSupplicant)?;
