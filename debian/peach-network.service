@@ -8,21 +8,6 @@ Group=wpactrl-user
 Environment="RUST_LOG=error"
 ExecStart=/usr/bin/peach-network
 Restart=always
-CapabilityBoundingSet=~CAP_SYS_ADMIN CAP_SYS_PTRACE CAP_SYS_BOOT CAP_SYS_TIME CAP_KILL CAP_WAKE_ALARM CAP_LINUX_IMMUTABLE CAP_BLOCK_SUSPEND CAP_LEASE CAP_SYS_NICE CAP_SYS_RESOURCE CAP_RAWIO CAP_CHOWN CAP_FSETID CAP_SETFCAP CAP_DAC_* CAP_FOWNER CAP_IPC_OWNER CAP_SETUID CAP_SETGID CAP_SETPCAP CAP_AUDIT_*
-InaccessibleDirectories=/home
-LockPersonality=yes
-NoNewPrivileges=yes
-PrivateDevices=yes
-PrivateTmp=yes
-PrivateUsers=yes
-ProtectControlGroups=yes
-ProtectHome=yes
-ProtectKernelModules=yes
-ProtectKernelTunables=yes
-ProtectSystem=yes
-ReadOnlyDirectories=/var
-RestrictAddressFamilies=~AF_INET6 AF_UNIX
-SystemCallFilter=~@reboot @clock @debug @module @mount @swap @resources @privileged
 
 [Install]
 WantedBy=multi-user.target
