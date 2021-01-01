@@ -93,7 +93,7 @@ Build the package:
 
 `cargo deb`
 
-The output will be written to `target/debian/peach-network_0.1.0_arm64.deb` (or similar).
+The output will be written to `target/debian/peach-network_0.2.4_arm64.deb` (or similar).
 
 Build the package (aarch64):
 
@@ -101,7 +101,7 @@ Build the package (aarch64):
 
 Install the package as follows:
 
-`sudo dpkg -i target/debian/peach-network_0.1.0_arm64.deb`
+`sudo dpkg -i target/debian/peach-network_0.2.4_arm64.deb`
 
 The service will be automatically enabled and started.
 
