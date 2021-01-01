@@ -30,9 +30,9 @@ maintenance = { status = "actively-developed" }
 env_logger = "0.6"
 failure = "0.1"
 get_if_addrs = "0.5.3"
-jsonrpc-core = "15"
-jsonrpc-http-server = "15"
-jsonrpc-test = "15"
+jsonrpc-core = "11"
+jsonrpc-http-server = "11"
+jsonrpc-test = "11"
 log = "0.4"
 probes = "0.4"
 serde = { version = "1", features = ["derive"] }
