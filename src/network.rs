@@ -571,35 +571,30 @@ pub fn activate_ap() -> Result<(), NetworkError> {
 ///
 pub fn activate_client() -> Result<(), NetworkError> {
     // stop hostap
-    Command::new("sudo")
-        .arg("/usr/bin/systemctl")
+    Command::new("/usr/bin/systemctl")
         .arg("stop")
         .arg("hostapd")
         .output()
         .context(StopHostapd)?;
     // stop dnsmasq
-    Command::new("sudo")
-        .arg("/usr/bin/systemctl")
+    Command::new("/usr/bin/systemctl")
         .arg("stop")
         .arg("dnsmasq")
         .output()
         .context(StopDnsmasq)?;
     // start wpa_supplicant
-    Command::new("sudo")
-        .arg("/usr/bin/systemctl")
+    Command::new("/usr/bin/systemctl")
         .arg("start")
         .arg("wpa_supplicant")
         .output()
         .context(StopWpaSupplicant)?;
     // set wlan0 up
-    Command::new("sudo")
-        .arg("/usr/sbin/ifup")
+    Command::new("/usr/sbin/ifup")
         .arg("wlan0")
         .output()
         .context(SetWlanInterfaceUp)?;
     // set wlan0 mode to default (prevent dormant bug)
-    Command::new("sudo")
-        .arg("/bin/ip")
+    Command::new("/bin/ip")
         .arg("link")
         .arg("set")
         .arg("wlan0")
