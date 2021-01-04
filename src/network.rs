@@ -528,35 +528,30 @@ pub fn traffic(iface: &str) -> Result<Option<String>, NetworkError> {
 ///
 pub fn activate_ap() -> Result<(), NetworkError> {
     // stop wpa_supplicant
-    Command::new("sudo")
-        .arg("/usr/bin/systemctl")
+    Command::new("/usr/bin/systemctl")
         .arg("stop")
         .arg("wpa_supplicant")
         .output()
         .context(StopWpaSupplicant)?;
     // set wlan0 down
-    Command::new("sudo")
-        .arg("/usr/sbin/ifdown")
+    Command::new("/usr/sbin/ifdown")
         .arg("wlan0")
         .output()
         .context(SetWlanInterfaceDown)?;
     // unmask hostapd (just a precaution)
-    Command::new("sudo")
-        .arg("/usr/bin/systemctl")
+    Command::new("/usr/bin/systemctl")
         .arg("unmask")
         .arg("hostapd")
         .output()
         .context(UnmaskHostapd)?;
     // start hostapd
-    Command::new("sudo")
-        .arg("/usr/bin/systemctl")
+    Command::new("/usr/bin/systemctl")
         .arg("start")
         .arg("hostapd")
         .output()
         .context(StartHostapd)?;
     // start dnsmasq
-    Command::new("sudo")
-        .arg("/usr/bin/systemctl")
+    Command::new("/usr/bin/systemctl")
         .arg("start")
         .arg("dnsmasq")
         .output()
