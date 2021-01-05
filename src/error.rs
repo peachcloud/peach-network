@@ -10,6 +10,12 @@ pub type BoxError = Box<dyn error::Error>;
 #[derive(Debug, Snafu)]
 #[snafu(visibility(pub(crate)))]
 pub enum NetworkError {
+    #[snafu(display("{}", err_msg))]
+    ActivateAp { err_msg: String },
+
+    #[snafu(display("{}", err_msg))]
+    ActivateClient { err_msg: String },
+
     #[snafu(display("Failed to add network for {}", ssid))]
     Add { ssid: String },
 
@@ -98,38 +104,14 @@ pub enum NetworkError {
     #[snafu(display("Failed to connect to network {} for interface: {}", id, iface))]
     Connect { id: String, iface: String },
 
+    #[snafu(display("Failed to run activate_ap script: {}", source))]
+    RunApScript { source: io::Error },
+
+    #[snafu(display("Failed to run activate_client script: {}", source))]
+    RunClientScript { source: io::Error },
+
     #[snafu(display("JSON serialization failed: {}", source))]
     SerdeSerialize { source: SerdeError },
-
-    #[snafu(display("Failed to set ap0 interface up: {}", source))]
-    SetApInterfaceUp { source: io::Error },
-
-    #[snafu(display("Failed to set the wlan0 interface mode to default: {}", source))]
-    SetWlanInterfaceDefault { source: io::Error },
-
-    #[snafu(display("Failed to set the wlan0 interface down: {}", source))]
-    SetWlanInterfaceDown { source: io::Error },
-
-    #[snafu(display("Failed to set the wlan0 interface up: {}", source))]
-    SetWlanInterfaceUp { source: io::Error },
-
-    #[snafu(display("Failed to stop wpasupplicant process: {}", source))]
-    StopWpaSupplicant { source: io::Error },
-
-    #[snafu(display("Failed to start dnsmasq process: {}", source))]
-    StartDnsmasq { source: io::Error },
-
-    #[snafu(display("Failed to stop dnsmasq process: {}", source))]
-    StopDnsmasq { source: io::Error },
-
-    #[snafu(display("Failed to start hostapd process: {}", source))]
-    StartHostapd { source: io::Error },
-
-    #[snafu(display("Failed to stop hostapd process: {}", source))]
-    StopHostapd { source: io::Error },
-
-    #[snafu(display("Failed to unmask hostapd process: {}", source))]
-    UnmaskHostapd { source: io::Error },
 
     #[snafu(display("Failed to open control interface for wpasupplicant"))]
     WpaCtrlOpen {
@@ -147,6 +129,16 @@ pub enum NetworkError {
 impl From<NetworkError> for Error {
     fn from(err: NetworkError) -> Self {
         match &err {
+            NetworkError::ActivateAp { err_msg } => Error {
+                code: ErrorCode::ServerError(-32015),
+                message: err_msg.to_string(),
+                data: None,
+            },
+            NetworkError::ActivateClient { err_msg } => Error {
+                code: ErrorCode::ServerError(-32017),
+                message: err_msg.to_string(),
+                data: None,
+            },
             NetworkError::Add { ssid } => Error {
                 code: ErrorCode::ServerError(-32000),
                 message: format!("Failed to add network for {}", ssid),
@@ -304,59 +296,19 @@ impl From<NetworkError> for Error {
                 message: format!("Failed to connect to network {} for {}", id, iface),
                 data: None,
             },
+            NetworkError::RunApScript { source } => Error {
+                code: ErrorCode::ServerError(-32016),
+                message: format!("Failed to run activate_ap script: {}", source),
+                data: None,
+            },
+            NetworkError::RunClientScript { source } => Error {
+                code: ErrorCode::ServerError(-32018),
+                message: format!("Failed to run activate_client script: {}", source),
+                data: None,
+            },
             NetworkError::SerdeSerialize { source } => Error {
                 code: ErrorCode::ServerError(-32012),
                 message: format!("JSON serialization failed: {}", source),
-                data: None,
-            },
-            NetworkError::SetApInterfaceUp { source } => Error {
-                code: ErrorCode::ServerError(-32036),
-                message: format!("Failed to set ap0 interface up: {}", source),
-                data: None,
-            },
-            NetworkError::SetWlanInterfaceDefault { source } => Error {
-                code: ErrorCode::ServerError(-32038),
-                message: format!("Failed to set wlan0 interface mode to default: {}", source),
-                data: None,
-            },
-            NetworkError::SetWlanInterfaceDown { source } => Error {
-                code: ErrorCode::ServerError(-32016),
-                message: format!("Failed to set wlan0 interface down: {}", source),
-                data: None,
-            },
-            NetworkError::SetWlanInterfaceUp { source } => Error {
-                code: ErrorCode::ServerError(-32019),
-                message: format!("Failed to set wlan0 interface up: {}", source),
-                data: None,
-            },
-            NetworkError::StartDnsmasq { source } => Error {
-                code: ErrorCode::ServerError(-32018),
-                message: format!("Failed to start dnsmasq process: {}", source),
-                data: None,
-            },
-            NetworkError::StopDnsmasq { source } => Error {
-                code: ErrorCode::ServerError(-32020),
-                message: format!("Failed to stop dnsmasq process: {}", source),
-                data: None,
-            },
-            NetworkError::StartHostapd { source } => Error {
-                code: ErrorCode::ServerError(-32017),
-                message: format!("Failed to start hostapd process: {}", source),
-                data: None,
-            },
-            NetworkError::StopHostapd { source } => Error {
-                code: ErrorCode::ServerError(-32021),
-                message: format!("Failed to stop hostapd process: {}", source),
-                data: None,
-            },
-            NetworkError::StopWpaSupplicant { source } => Error {
-                code: ErrorCode::ServerError(-32015),
-                message: format!("Failed to stop wpasupplicant process: {}", source),
-                data: None,
-            },
-            NetworkError::UnmaskHostapd { source } => Error {
-                code: ErrorCode::ServerError(-32037),
-                message: format!("Failed to unmask hostapd process: {}", source),
                 data: None,
             },
             NetworkError::WpaCtrlOpen { source } => Error {
