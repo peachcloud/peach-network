@@ -10,10 +10,10 @@ pub type BoxError = Box<dyn error::Error>;
 #[derive(Debug, Snafu)]
 #[snafu(visibility(pub(crate)))]
 pub enum NetworkError {
-    #[snafu(display("Failed to activate access-point mode: {}", err_msg))]
+    #[snafu(display("{}", err_msg))]
     ActivateAp { err_msg: String },
 
-    #[snafu(display("Failed to activate client mode: {}", err_msg))]
+    #[snafu(display("{}", err_msg))]
     ActivateClient { err_msg: String },
 
     #[snafu(display("Failed to add network for {}", ssid))]
@@ -131,12 +131,12 @@ impl From<NetworkError> for Error {
         match &err {
             NetworkError::ActivateAp { err_msg } => Error {
                 code: ErrorCode::ServerError(-32015),
-                message: format!("Failed to activate access-point mode: {}", err_msg),
+                message: format!("{}", err_msg),
                 data: None,
             },
             NetworkError::ActivateClient { err_msg } => Error {
                 code: ErrorCode::ServerError(-32017),
-                message: format!("Failed to activate client mode: {}", err_msg),
+                message: format!("{}", err_msg),
                 data: None,
             },
             NetworkError::Add { ssid } => Error {
