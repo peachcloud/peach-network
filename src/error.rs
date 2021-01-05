@@ -113,9 +113,6 @@ pub enum NetworkError {
     #[snafu(display("JSON serialization failed: {}", source))]
     SerdeSerialize { source: SerdeError },
 
-    #[snafu(display("Failed to set ap0 interface up: {}", source))]
-    SetApInterfaceUp { source: io::Error },
-
     #[snafu(display("Failed to open control interface for wpasupplicant"))]
     WpaCtrlOpen {
         #[snafu(source(from(failure::Error, std::convert::Into::into)))]
@@ -299,12 +296,12 @@ impl From<NetworkError> for Error {
                 message: format!("Failed to connect to network {} for {}", id, iface),
                 data: None,
             },
-            NetworkError::RunApScript { source }=> Error {
+            NetworkError::RunApScript { source } => Error {
                 code: ErrorCode::ServerError(-32016),
                 message: format!("Failed to run activate_ap script: {}", source),
                 data: None,
             },
-            NetworkError::RunClientScript { source }=> Error {
+            NetworkError::RunClientScript { source } => Error {
                 code: ErrorCode::ServerError(-32018),
                 message: format!("Failed to run activate_client script: {}", source),
                 data: None,
@@ -312,11 +309,6 @@ impl From<NetworkError> for Error {
             NetworkError::SerdeSerialize { source } => Error {
                 code: ErrorCode::ServerError(-32012),
                 message: format!("JSON serialization failed: {}", source),
-                data: None,
-            },
-            NetworkError::SetApInterfaceUp { source } => Error {
-                code: ErrorCode::ServerError(-32036),
-                message: format!("Failed to set ap0 interface up: {}", source),
                 data: None,
             },
             NetworkError::WpaCtrlOpen { source } => Error {

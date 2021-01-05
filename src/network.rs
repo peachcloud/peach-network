@@ -544,7 +544,7 @@ pub fn activate_ap() -> Result<(), NetworkError> {
 ///
 /// A command is invoked which executes the `activate_client` bash script.
 /// The script attempts to stop the `hostapd` and `dnsmasq` processes and set
-/// the `wlan0` interface up. If the commands execute successfully, an `Ok` 
+/// the `wlan0` interface up. If the commands execute successfully, an `Ok`
 /// `Result` type is returned. In the event of an error, a `NetworkError` is
 /// returned in the `Result`. The `NetworkError` is then enumerated to a
 /// specific error type and an appropriate JSON RPC response is sent to the
