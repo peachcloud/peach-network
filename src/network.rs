@@ -535,7 +535,10 @@ pub fn activate_ap() -> Result<(), NetworkError> {
     if output.status.success() {
         Ok(())
     } else {
-        let err_msg = String::from_utf8(output.stdout).unwrap();
+        let mut err_msg = String::from_utf8(output.stdout).unwrap();
+        let len = err_msg.len();
+        // truncate the error msg to remove the trailing newline character
+        err_msg.truncate(len - 1);
         Err(NetworkError::ActivateAp { err_msg })
     }
 }
@@ -558,7 +561,10 @@ pub fn activate_client() -> Result<(), NetworkError> {
     if output.status.success() {
         Ok(())
     } else {
-        let err_msg = String::from_utf8(output.stdout).unwrap();
+        let mut err_msg = String::from_utf8(output.stdout).unwrap();
+        let len = err_msg.len();
+        // truncate the error msg to remove the trailing newline character
+        err_msg.truncate(len - 1);
         Err(NetworkError::ActivateClient { err_msg })
     }
 }
