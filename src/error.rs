@@ -131,12 +131,12 @@ impl From<NetworkError> for Error {
         match &err {
             NetworkError::ActivateAp { err_msg } => Error {
                 code: ErrorCode::ServerError(-32015),
-                message: format!("{}", err_msg),
+                message: err_msg.to_string(),
                 data: None,
             },
             NetworkError::ActivateClient { err_msg } => Error {
                 code: ErrorCode::ServerError(-32017),
-                message: format!("{}", err_msg),
+                message: err_msg.to_string(),
                 data: None,
             },
             NetworkError::Add { ssid } => Error {
