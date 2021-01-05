@@ -518,92 +518,49 @@ pub fn traffic(iface: &str) -> Result<Option<String>, NetworkError> {
 
 /// Activate wireless access point.
 ///
-/// A series of commands are invoked which stop the `wpasupplicant` process,
-/// set the `wlan0` interface down, start the `hostapd` and `dnsmasq` processes
-/// and set the `ap0` interface up. If the commands execute successfully,
+/// A command is invoked which executes the `activate_ap` bash script.
+/// The script attempts to stop the `wpasupplicant` process, set the `wlan0`
+/// interface down, start the `hostapd` and `dnsmasq` processes
+/// and set the `ap0` interface up. If the script executes successfully,
 /// an `Ok` `Result` type is returned. In the event of an error, a
 /// `NetworkError` is returned in the `Result`. The `NetworkError` is then
 /// enumerated to a specific error type and an appropriate JSON RPC response is
 /// sent to the caller.
 ///
 pub fn activate_ap() -> Result<(), NetworkError> {
-    // stop wpa_supplicant
-    Command::new("/usr/bin/systemctl")
-        .arg("stop")
-        .arg("wpa_supplicant")
+    // execute the activate_ap bash script
+    let output = Command::new("/usr/local/bin/activate_ap")
         .output()
-        .context(StopWpaSupplicant)?;
-    // set wlan0 down
-    Command::new("/usr/sbin/ifdown")
-        .arg("wlan0")
-        .output()
-        .context(SetWlanInterfaceDown)?;
-    // unmask hostapd (just a precaution)
-    Command::new("/usr/bin/systemctl")
-        .arg("unmask")
-        .arg("hostapd")
-        .output()
-        .context(UnmaskHostapd)?;
-    // start hostapd
-    Command::new("/usr/bin/systemctl")
-        .arg("start")
-        .arg("hostapd")
-        .output()
-        .context(StartHostapd)?;
-    // start dnsmasq
-    Command::new("/usr/bin/systemctl")
-        .arg("start")
-        .arg("dnsmasq")
-        .output()
-        .context(StartDnsmasq)?;
-
-    Ok(())
+        .context(RunApScript)?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        let err_msg = String::from_utf8(output.stdout).unwrap();
+        Err(NetworkError::ActivateAp { err_msg })
+    }
 }
 
 /// Activate wireless client.
 ///
-/// A series of commands are invoked which stop the `hostapd` and `dnsmasq`
-/// processes and set the `wlan0` interface up. If the commands execute
-/// successfully, an `Ok` `Result` type is returned. In the event of an error, a
-/// `NetworkError` is returned in the `Result`. The `NetworkError` is then
-/// enumerated to a specific error type and an appropriate JSON RPC response is
-/// sent to the caller.
+/// A command is invoked which executes the `activate_client` bash script.
+/// The script attempts to stop the `hostapd` and `dnsmasq` processes and set
+/// the `wlan0` interface up. If the commands execute successfully, an `Ok` 
+/// `Result` type is returned. In the event of an error, a `NetworkError` is
+/// returned in the `Result`. The `NetworkError` is then enumerated to a
+/// specific error type and an appropriate JSON RPC response is sent to the
+/// caller.
 ///
 pub fn activate_client() -> Result<(), NetworkError> {
-    // stop hostap
-    Command::new("/usr/bin/systemctl")
-        .arg("stop")
-        .arg("hostapd")
+    // execute the activate_client bash script
+    let output = Command::new("/usr/local/bin/activate_client")
         .output()
-        .context(StopHostapd)?;
-    // stop dnsmasq
-    Command::new("/usr/bin/systemctl")
-        .arg("stop")
-        .arg("dnsmasq")
-        .output()
-        .context(StopDnsmasq)?;
-    // start wpa_supplicant
-    Command::new("/usr/bin/systemctl")
-        .arg("start")
-        .arg("wpa_supplicant")
-        .output()
-        .context(StopWpaSupplicant)?;
-    // set wlan0 up
-    Command::new("/usr/sbin/ifup")
-        .arg("wlan0")
-        .output()
-        .context(SetWlanInterfaceUp)?;
-    // set wlan0 mode to default (prevent dormant bug)
-    Command::new("/bin/ip")
-        .arg("link")
-        .arg("set")
-        .arg("wlan0")
-        .arg("mode")
-        .arg("default")
-        .output()
-        .context(SetWlanInterfaceDefault)?;
-
-    Ok(())
+        .context(RunClientScript)?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        let err_msg = String::from_utf8(output.stdout).unwrap();
+        Err(NetworkError::ActivateClient { err_msg })
+    }
 }
 
 /// Add network credentials for a given wireless access point.
