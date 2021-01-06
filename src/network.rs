@@ -529,7 +529,8 @@ pub fn traffic(iface: &str) -> Result<Option<String>, NetworkError> {
 ///
 pub fn activate_ap() -> Result<(), NetworkError> {
     // execute the activate_ap bash script
-    let output = Command::new("/usr/local/bin/activate_ap")
+    let output = Command::new("sudo")
+        .arg("/usr/local/bin/activate_ap")
         .output()
         .context(RunApScript)?;
     if output.status.success() {
@@ -555,7 +556,8 @@ pub fn activate_ap() -> Result<(), NetworkError> {
 ///
 pub fn activate_client() -> Result<(), NetworkError> {
     // execute the activate_client bash script
-    let output = Command::new("/usr/local/bin/activate_client")
+    let output = Command::new("sudo")
+        .arg("/usr/local/bin/activate_client")
         .output()
         .context(RunClientScript)?;
     if output.status.success() {
