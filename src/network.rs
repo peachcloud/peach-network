@@ -234,7 +234,7 @@ pub fn ip(iface: &str) -> Result<Option<String>, NetworkError> {
 ///
 /// * `iface` - A string slice holding the name of a wireless network interface
 ///
-/// If the signal strength is found for the given interface after polling,  
+/// If the signal strength is found for the given interface after polling,
 /// an `Ok` `Result` type is returned containing `Some(String)` - where `String`
 /// is the RSSI (Received Signal Strength Indicator) of the connection measured
 /// in dBm. If signal strength is not found, a `None` type is returned in the
@@ -266,7 +266,7 @@ pub fn rssi(iface: &str) -> Result<Option<String>, NetworkError> {
 ///
 /// * `iface` - A string slice holding the name of a wireless network interface
 ///
-/// If the signal strength is found for the given interface after polling,  
+/// If the signal strength is found for the given interface after polling,
 /// an `Ok` `Result` type is returned containing `Some(String)` - where `String`
 /// is the RSSI (Received Signal Strength Indicator) of the connection measured
 /// as a percentage. If signal strength is not found, a `None` type is returned
@@ -337,7 +337,7 @@ pub fn saved_networks() -> Result<Option<String>, NetworkError> {
 ///
 /// * `iface` - A string slice holding the name of a wireless network interface
 ///
-/// If the SSID is found in the status output for the given interface,  
+/// If the SSID is found in the status output for the given interface,
 /// an `Ok` `Result` type is returned containing `Some(String)` - where `String`
 /// is the SSID of the associated network. If SSID is not found, a `None` type
 /// is returned in the `Result`. In the event of an error, a `NetworkError` is
@@ -592,7 +592,9 @@ pub fn add(wifi: &WiFi) -> Result<(), NetworkError> {
         .output()
         .context(GenWpaPassphrase { ssid: &wifi.ssid })?;
 
-    let wpa_details = &*(output.stdout);
+    // prepend newline to wpa_details to safeguard against malformed supplicant
+    let mut wpa_details = "\n".as_bytes().to_vec();
+    wpa_details.extend(&*(output.stdout));
 
     // append wpa_passphrase output to wpa_supplicant.conf if successful
     if output.status.success() {
@@ -603,7 +605,7 @@ pub fn add(wifi: &WiFi) -> Result<(), NetworkError> {
 
         let _file = match file {
             // if file exists & open succeeds, write wifi configuration
-            Ok(mut f) => f.write(wpa_details),
+            Ok(mut f) => f.write(&wpa_details),
             // TODO: handle this better: create file if not found
             //  & seed with 'ctrl_interace' & 'update_config' settings
             //  config file could also be copied from peach/config fs location
