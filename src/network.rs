@@ -74,17 +74,35 @@ pub struct Scan {
 /// Status data for a network interface.
 #[derive(Debug, Serialize)]
 pub struct Status {
-    pub address: String,
-    pub bssid: String,
-    pub freq: String,
-    pub group_cipher: String,
-    pub id: String,
-    pub ip_address: String,
-    pub key_mgmt: String,
-    pub mode: String,
-    pub pairwise_cipher: String,
-    pub ssid: String,
-    pub wpa_state: String,
+    pub address: Option<String>,
+    pub bssid: Option<String>,
+    pub freq: Option<String>,
+    pub group_cipher: Option<String>,
+    pub id: Option<String>,
+    pub ip_address: Option<String>,
+    pub key_mgmt: Option<String>,
+    pub mode: Option<String>,
+    pub pairwise_cipher: Option<String>,
+    pub ssid: Option<String>,
+    pub wpa_state: Option<String>,
+}
+
+impl Status {
+    fn new() -> Status {
+        Status {
+            address: None,
+            bssid: None,
+            freq: None,
+            group_cipher: None,
+            id: None,
+            ip_address: None,
+            key_mgmt: None,
+            mode: None,
+            pairwise_cipher: None,
+            ssid: None,
+            wpa_state: None,
+        }
+    }
 }
 
 /// Received and transmitted network traffic (bytes).
@@ -420,63 +438,81 @@ pub fn status(iface: &str) -> Result<Option<Status>, NetworkError> {
         .ctrl_path(wpa_path)
         .open()
         .context(WpaCtrlOpen)?;
-    let status = wpa.request("STATUS").context(WpaCtrlRequest)?;
-    // returns an iterator over the lines in status response
-    let mut status_lines = status.lines();
-    if let Some(line) = status_lines.next() {
-        let bssid = line;
-        let freq = status_lines
-            .next()
-            .expect("None value unwrap for freq in get_status");
-        let ssid = status_lines
-            .next()
-            .expect("None value unwrap for ssid in get_status");
-        let id = status_lines
-            .next()
-            .expect("None value unwrap for id in get_status");
-        let mode = status_lines
-            .next()
-            .expect("None value unwrap for mode in get_status");
-        let pairwise_cipher = status_lines
-            .next()
-            .expect("None value unwrap for pairwise_cipher in get_status");
-        let group_cipher = status_lines
-            .next()
-            .expect("None value unwrap for group_cipher in get_status");
-        let key_mgmt = status_lines
-            .next()
-            .expect("None value unwrap for key_mgmt in get_status");
-        let wpa_state = status_lines
-            .next()
-            .expect("None value unwrap for wpa_state in get_status");
-        let ip_address = status_lines
-            .next()
-            .expect("None value unwrap for ip_address in get_status");
-        // skip line containing p2p_device_address
-        status_lines.next();
-        let address = status_lines
-            .next()
-            .expect("None value unwrap for address in get_status");
+    let wpa_status = wpa.request("STATUS").context(WpaCtrlRequest)?;
+    // create regex pattern to find wpa_state in status output
+    let re = Regex::new(r"\nwpa_state=(.*)\n").context(Regex)?;
+    // apply regex pattern to the status output and save matches
+    let caps = re.captures(&wpa_status);
+    let wpa_state = match caps {
+        Some(caps) => {
+            // caps[1] contains inner regex match, ie. the wpa state
+            caps[1].to_string()
+        }
+        None => "ERROR".to_string(),
+    };
 
-        // assign values to struct fields, splitting after the `=` sign
-        let iface_status = Status {
-            address: address.to_string().split_off(8),
-            bssid: bssid.to_string().split_off(6),
-            freq: freq.to_string().split_off(5),
-            group_cipher: group_cipher.to_string().split_off(13),
-            id: id.to_string().split_off(3),
-            ip_address: ip_address.to_string().split_off(11),
-            key_mgmt: key_mgmt.to_string().split_off(9),
-            mode: mode.to_string().split_off(5),
-            pairwise_cipher: pairwise_cipher.to_string().split_off(16),
-            ssid: ssid.to_string().split_off(5),
-            wpa_state: wpa_state.to_string().split_off(10),
-        };
+    // create new Status object (all fields are None type by default)
+    let mut status = Status::new();
+    // match on wpa_state and set Status fields accordingly
+    match wpa_state.as_ref() {
+        "INACTIVE" => status.wpa_state = Some("INACTIVE".to_string()),
+        "DISCONNECTED" => status.wpa_state = Some("DISCONNECTED".to_string()),
+        "COMPLETED" => {
+            // returns an iterator over the lines in status response
+            let mut status_lines = wpa_status.lines();
+            if let Some(line) = status_lines.next() {
+                let bssid = line;
+                let freq = status_lines
+                    .next()
+                    .expect("None value unwrap for freq in get_status");
+                let ssid = status_lines
+                    .next()
+                    .expect("None value unwrap for ssid in get_status");
+                let id = status_lines
+                    .next()
+                    .expect("None value unwrap for id in get_status");
+                let mode = status_lines
+                    .next()
+                    .expect("None value unwrap for mode in get_status");
+                let pairwise_cipher = status_lines
+                    .next()
+                    .expect("None value unwrap for pairwise_cipher in get_status");
+                let group_cipher = status_lines
+                    .next()
+                    .expect("None value unwrap for group_cipher in get_status");
+                let key_mgmt = status_lines
+                    .next()
+                    .expect("None value unwrap for key_mgmt in get_status");
+                let wpa_state = status_lines
+                    .next()
+                    .expect("None value unwrap for wpa_state in get_status");
+                let ip_address = status_lines
+                    .next()
+                    .expect("None value unwrap for ip_address in get_status");
+                // skip line containing p2p_device_address
+                status_lines.next();
+                let address = status_lines
+                    .next()
+                    .expect("None value unwrap for address in get_status");
 
-        Ok(Some(iface_status))
-    } else {
-        Ok(None)
+                // assign values to struct fields, splitting after the `=` sign
+                status.address = Some(address.to_string().split_off(8));
+                status.bssid = Some(bssid.to_string().split_off(6));
+                status.freq = Some(freq.to_string().split_off(5));
+                status.group_cipher = Some(group_cipher.to_string().split_off(13));
+                status.id = Some(id.to_string().split_off(3));
+                status.ip_address = Some(ip_address.to_string().split_off(11));
+                status.key_mgmt = Some(key_mgmt.to_string().split_off(9));
+                status.mode = Some(mode.to_string().split_off(5));
+                status.pairwise_cipher = Some(pairwise_cipher.to_string().split_off(16));
+                status.ssid = Some(ssid.to_string().split_off(5));
+                status.wpa_state = Some(wpa_state.to_string().split_off(10));
+            }
+        },
+        _ => ()
     }
+
+    Ok(Some(status))
 }
 
 /// Retrieve network traffic statistics for a given interface.
