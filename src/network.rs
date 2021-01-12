@@ -433,7 +433,7 @@ pub fn status(iface: &str) -> Result<Option<Status>, NetworkError> {
     let wpa_status = wpa.request("STATUS").context(WpaCtrlRequest)?;
 
     // pass the regex pattern and status output to the regex finder
-    let state = utils::regex_finder(r"\nwpa_state=(.*)\n", &wpa_status)?;
+    let state = utils::regex_finder(r"wpa_state=(.*)\n", &wpa_status)?;
     // regex_finder returns an Option type, unwrap or replace None with ERROR
     let wpa_state = state.unwrap_or_else(|| "ERROR".to_string());
 
