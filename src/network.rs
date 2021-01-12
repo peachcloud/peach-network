@@ -299,19 +299,23 @@ pub fn rssi_percent(iface: &str) -> Result<Option<String>, NetworkError> {
         .open()
         .context(WpaCtrlOpen)?;
     let status = wpa.request("SIGNAL_POLL").context(WpaCtrlRequest)?;
-    let mut status_lines = status.lines();
-    if let Some(rssi_line) = status_lines.next() {
-        // AVG_RSSI fluctuates wildly, use RSSI instead
-        let rssi = rssi_line.to_string().split_off(5);
-        // parse the string to a signed integer (for math)
-        let rssi_parsed = rssi.parse::<i32>().context(ParseString)?;
-        // perform rssi (dBm) to quality (%) conversion
-        let quality_percent = 2 * (rssi_parsed + 100);
-        // convert signal quality integer to string
-        let quality = quality_percent.to_string();
-        Ok(Some(quality))
-    } else {
-        Ok(None)
+    let rssi = utils::regex_finder(r"RSSI=(.*)\n", &status)?;
+
+    match rssi {
+        Some(rssi) => {
+            // parse the string to a signed integer (for math)
+            let rssi_parsed = rssi.parse::<i32>().context(ParseString)?;
+            // perform rssi (dBm) to quality (%) conversion
+            let quality_percent = 2 * (rssi_parsed + 100);
+            // convert signal quality integer to string
+            let quality = quality_percent.to_string();
+
+            Ok(Some(quality))
+        }
+        None => {
+            let iface = iface.to_string();
+            Err(NetworkError::RssiPercent { iface })
+        }
     }
 }
 
