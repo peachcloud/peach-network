@@ -371,10 +371,8 @@ pub fn ssid(iface: &str) -> Result<Option<String>, NetworkError> {
         .context(WpaCtrlOpen)?;
     let status = wpa.request("STATUS").context(WpaCtrlRequest)?;
 
-    // create regex pattern to find ssid in status output
-    let pattern = r"\nssid=(.*)\n";
-    // pass the pattern and status output to the regex finder
-    let ssid = utils::regex_finder(&pattern, &status)?;
+    // pass the regex pattern and status output to the regex finder
+    let ssid = utils::regex_finder(r"\nssid=(.*)\n", &status)?;
 
     Ok(ssid)
 }
@@ -434,17 +432,14 @@ pub fn status(iface: &str) -> Result<Option<Status>, NetworkError> {
         .context(WpaCtrlOpen)?;
     let wpa_status = wpa.request("STATUS").context(WpaCtrlRequest)?;
 
-    // create regex pattern to find ssid in status output
-    let pattern = r"\nwpa_state=(.*)\n";
-    // pass the pattern and status output to the regex finder
-    let state = utils::regex_finder(&pattern, &wpa_status)?;
+    // pass the regex pattern and status output to the regex finder
+    let state = utils::regex_finder(r"\nwpa_state=(.*)\n", &wpa_status)?;
     // regex_finder returns an Option type, unwrap or replace None with ERROR
     let wpa_state = state.unwrap_or_else(|| "ERROR".to_string());
 
     // create new Status object (all fields are None type by default)
     let mut status = Status::new();
     // match on wpa_state and set Status fields accordingly
-    // we only retrieve additional fields if wpa_state is COMPLETED
     match wpa_state.as_ref() {
         "ERROR" => status.wpa_state = Some("ERROR".to_string()),
         "UNKNOWN" => status.wpa_state = Some("UNKNOWN".to_string()),
@@ -457,57 +452,19 @@ pub fn status(iface: &str) -> Result<Option<Status>, NetworkError> {
         "AUTHENTICATING" => status.wpa_state = Some("AUTHENTICATING".to_string()),
         "4WAY_HANDSHAKE" => status.wpa_state = Some("4WAY_HANDSHAKE".to_string()),
         "GROUP_HANDSHAKE" => status.wpa_state = Some("GROUP_HANDSHAKE".to_string()),
+        // retrieve additional status fields only if wpa_state is COMPLETED
         "COMPLETED" => {
-            // returns an iterator over the lines in status response
-            let mut status_lines = wpa_status.lines();
-            if let Some(line) = status_lines.next() {
-                let bssid = line;
-                let freq = status_lines
-                    .next()
-                    .expect("None value unwrap for freq in get_status");
-                let ssid = status_lines
-                    .next()
-                    .expect("None value unwrap for ssid in get_status");
-                let id = status_lines
-                    .next()
-                    .expect("None value unwrap for id in get_status");
-                let mode = status_lines
-                    .next()
-                    .expect("None value unwrap for mode in get_status");
-                let pairwise_cipher = status_lines
-                    .next()
-                    .expect("None value unwrap for pairwise_cipher in get_status");
-                let group_cipher = status_lines
-                    .next()
-                    .expect("None value unwrap for group_cipher in get_status");
-                let key_mgmt = status_lines
-                    .next()
-                    .expect("None value unwrap for key_mgmt in get_status");
-                let wpa_state = status_lines
-                    .next()
-                    .expect("None value unwrap for wpa_state in get_status");
-                let ip_address = status_lines
-                    .next()
-                    .expect("None value unwrap for ip_address in get_status");
-                // skip line containing p2p_device_address
-                status_lines.next();
-                let address = status_lines
-                    .next()
-                    .expect("None value unwrap for address in get_status");
-
-                // assign values to struct fields, splitting after the `=` sign
-                status.address = Some(address.to_string().split_off(8));
-                status.bssid = Some(bssid.to_string().split_off(6));
-                status.freq = Some(freq.to_string().split_off(5));
-                status.group_cipher = Some(group_cipher.to_string().split_off(13));
-                status.id = Some(id.to_string().split_off(3));
-                status.ip_address = Some(ip_address.to_string().split_off(11));
-                status.key_mgmt = Some(key_mgmt.to_string().split_off(9));
-                status.mode = Some(mode.to_string().split_off(5));
-                status.pairwise_cipher = Some(pairwise_cipher.to_string().split_off(16));
-                status.ssid = Some(ssid.to_string().split_off(5));
-                status.wpa_state = Some(wpa_state.to_string().split_off(10));
-            }
+            status.address = utils::regex_finder(r"\naddress=(.*)\n", &wpa_status)?;
+            status.bssid = utils::regex_finder(r"\nbssid=(.*)\n", &wpa_status)?;
+            status.freq = utils::regex_finder(r"\nfreq=(.*)\n", &wpa_status)?;
+            status.group_cipher = utils::regex_finder(r"\ngroup_cipher=(.*)\n", &wpa_status)?;
+            status.id = utils::regex_finder(r"\nid=(.*)\n", &wpa_status)?;
+            status.ip_address = utils::regex_finder(r"\nip_address=(.*)\n", &wpa_status)?;
+            status.key_mgmt = utils::regex_finder(r"\nkey_mgmt=(.*)\n", &wpa_status)?;
+            status.mode = utils::regex_finder(r"\nmode=(.*)\n", &wpa_status)?;
+            status.pairwise_cipher = utils::regex_finder(r"\npairwise_cipher=(.*)\n", &wpa_status)?;
+            status.ssid = utils::regex_finder(r"\nssid=(.*)\n", &wpa_status)?;
+            status.wpa_state = utils::regex_finder(r"\nwpa_state=(.*)\n", &wpa_status)?;
         }
         _ => (),
     }
