@@ -267,13 +267,13 @@ pub fn rssi(iface: &str) -> Result<Option<String>, NetworkError> {
         .open()
         .context(WpaCtrlOpen)?;
     let status = wpa.request("SIGNAL_POLL").context(WpaCtrlRequest)?;
-    let mut status_lines = status.lines();
-    if let Some(rssi_line) = status_lines.next() {
-        // AVG_RSSI fluctuates wildly, use RSSI instead
-        let rssi = rssi_line.to_string().split_off(5);
-        Ok(Some(rssi))
+    let rssi = utils::regex_finder(r"RSSI=(.*)\n", &status)?;
+
+    if rssi.is_none() {
+        let iface = iface.to_string();
+        Err(NetworkError::Rssi { iface })
     } else {
-        Ok(None)
+        Ok(rssi)
     }
 }
 
