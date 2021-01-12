@@ -454,9 +454,18 @@ pub fn status(iface: &str) -> Result<Option<Status>, NetworkError> {
     // create new Status object (all fields are None type by default)
     let mut status = Status::new();
     // match on wpa_state and set Status fields accordingly
+    // we only retrieve additional fields if wpa_state is COMPLETED
     match wpa_state.as_ref() {
+        "UNKNOWN" => status.wpa_state = Some("UNKNOWN".to_string()),
+        "INTERFACE_DISABLED" => status.wpa_state = Some("DISABLED".to_string()),
         "INACTIVE" => status.wpa_state = Some("INACTIVE".to_string()),
         "DISCONNECTED" => status.wpa_state = Some("DISCONNECTED".to_string()),
+        "SCANNING" => status.wpa_state = Some("SCANNING".to_string()),
+        "ASSOCIATING" => status.wpa_state = Some("ASSOCIATING".to_string()),
+        "ASSOCIATED" => status.wpa_state = Some("ASSOCIATED".to_string()),
+        "AUTHENTICATING" => status.wpa_state = Some("AUTHENTICATING".to_string()),
+        "4WAY_HANDSHAKE" => status.wpa_state = Some("4WAY_HANDSHAKE".to_string()),
+        "GROUP_HANDSHAKE" => status.wpa_state = Some("GROUP_HANDSHAKE".to_string()),
         "COMPLETED" => {
             // returns an iterator over the lines in status response
             let mut status_lines = wpa_status.lines();
