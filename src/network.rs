@@ -27,6 +27,7 @@ use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 
 use crate::error::*;
+use crate::utils;
 
 /// Network interface name.
 #[derive(Debug, Deserialize)]
@@ -370,17 +371,11 @@ pub fn ssid(iface: &str) -> Result<Option<String>, NetworkError> {
         .open()
         .context(WpaCtrlOpen)?;
     let status = wpa.request("STATUS").context(WpaCtrlRequest)?;
+
     // create regex pattern to find ssid in status output
-    let re = Regex::new(r"\nssid=(.*)\n").context(Regex)?;
-    // apply regex pattern to the status output and save matches
-    let caps = re.captures(&status);
-    let ssid = match caps {
-        Some(caps) => {
-            // caps[1] contains inner regex match, ie. the network ssid
-            Some(caps[1].to_string())
-        }
-        None => None,
-    };
+    let pattern = r"\nssid=(.*)\n";
+    // pass the pattern and status output to the regex finder
+    let ssid = utils::regex_finder(&pattern, &status)?;
 
     Ok(ssid)
 }
@@ -517,8 +512,8 @@ pub fn status(iface: &str) -> Result<Option<Status>, NetworkError> {
                 status.ssid = Some(ssid.to_string().split_off(5));
                 status.wpa_state = Some(wpa_state.to_string().split_off(10));
             }
-        },
-        _ => ()
+        }
+        _ => (),
     }
 
     Ok(Some(status))
