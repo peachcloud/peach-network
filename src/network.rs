@@ -22,7 +22,6 @@ use std::{
 };
 
 use probes::network;
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 
@@ -434,23 +433,20 @@ pub fn status(iface: &str) -> Result<Option<Status>, NetworkError> {
         .open()
         .context(WpaCtrlOpen)?;
     let wpa_status = wpa.request("STATUS").context(WpaCtrlRequest)?;
-    // create regex pattern to find wpa_state in status output
-    let re = Regex::new(r"\nwpa_state=(.*)\n").context(Regex)?;
-    // apply regex pattern to the status output and save matches
-    let caps = re.captures(&wpa_status);
-    let wpa_state = match caps {
-        Some(caps) => {
-            // caps[1] contains inner regex match, ie. the wpa state
-            caps[1].to_string()
-        }
-        None => "ERROR".to_string(),
-    };
+
+    // create regex pattern to find ssid in status output
+    let pattern = r"\nwpa_state=(.*)\n";
+    // pass the pattern and status output to the regex finder
+    let state = utils::regex_finder(&pattern, &wpa_status)?;
+    // regex_finder returns an Option type, unwrap or replace None with ERROR
+    let wpa_state = state.unwrap_or_else(|| "ERROR".to_string());
 
     // create new Status object (all fields are None type by default)
     let mut status = Status::new();
     // match on wpa_state and set Status fields accordingly
     // we only retrieve additional fields if wpa_state is COMPLETED
     match wpa_state.as_ref() {
+        "ERROR" => status.wpa_state = Some("ERROR".to_string()),
         "UNKNOWN" => status.wpa_state = Some("UNKNOWN".to_string()),
         "INTERFACE_DISABLED" => status.wpa_state = Some("DISABLED".to_string()),
         "INACTIVE" => status.wpa_state = Some("INACTIVE".to_string()),
