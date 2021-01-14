@@ -22,11 +22,11 @@ use std::{
 };
 
 use probes::network;
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 
 use crate::error::*;
+use crate::utils;
 
 /// Network interface name.
 #[derive(Debug, Deserialize)]
@@ -74,17 +74,35 @@ pub struct Scan {
 /// Status data for a network interface.
 #[derive(Debug, Serialize)]
 pub struct Status {
-    pub address: String,
-    pub bssid: String,
-    pub freq: String,
-    pub group_cipher: String,
-    pub id: String,
-    pub ip_address: String,
-    pub key_mgmt: String,
-    pub mode: String,
-    pub pairwise_cipher: String,
-    pub ssid: String,
-    pub wpa_state: String,
+    pub address: Option<String>,
+    pub bssid: Option<String>,
+    pub freq: Option<String>,
+    pub group_cipher: Option<String>,
+    pub id: Option<String>,
+    pub ip_address: Option<String>,
+    pub key_mgmt: Option<String>,
+    pub mode: Option<String>,
+    pub pairwise_cipher: Option<String>,
+    pub ssid: Option<String>,
+    pub wpa_state: Option<String>,
+}
+
+impl Status {
+    fn new() -> Status {
+        Status {
+            address: None,
+            bssid: None,
+            freq: None,
+            group_cipher: None,
+            id: None,
+            ip_address: None,
+            key_mgmt: None,
+            mode: None,
+            pairwise_cipher: None,
+            ssid: None,
+            wpa_state: None,
+        }
+    }
 }
 
 /// Received and transmitted network traffic (bytes).
@@ -249,13 +267,13 @@ pub fn rssi(iface: &str) -> Result<Option<String>, NetworkError> {
         .open()
         .context(WpaCtrlOpen)?;
     let status = wpa.request("SIGNAL_POLL").context(WpaCtrlRequest)?;
-    let mut status_lines = status.lines();
-    if let Some(rssi_line) = status_lines.next() {
-        // AVG_RSSI fluctuates wildly, use RSSI instead
-        let rssi = rssi_line.to_string().split_off(5);
-        Ok(Some(rssi))
+    let rssi = utils::regex_finder(r"RSSI=(.*)\n", &status)?;
+
+    if rssi.is_none() {
+        let iface = iface.to_string();
+        Err(NetworkError::Rssi { iface })
     } else {
-        Ok(None)
+        Ok(rssi)
     }
 }
 
@@ -281,19 +299,23 @@ pub fn rssi_percent(iface: &str) -> Result<Option<String>, NetworkError> {
         .open()
         .context(WpaCtrlOpen)?;
     let status = wpa.request("SIGNAL_POLL").context(WpaCtrlRequest)?;
-    let mut status_lines = status.lines();
-    if let Some(rssi_line) = status_lines.next() {
-        // AVG_RSSI fluctuates wildly, use RSSI instead
-        let rssi = rssi_line.to_string().split_off(5);
-        // parse the string to a signed integer (for math)
-        let rssi_parsed = rssi.parse::<i32>().context(ParseString)?;
-        // perform rssi (dBm) to quality (%) conversion
-        let quality_percent = 2 * (rssi_parsed + 100);
-        // convert signal quality integer to string
-        let quality = quality_percent.to_string();
-        Ok(Some(quality))
-    } else {
-        Ok(None)
+    let rssi = utils::regex_finder(r"RSSI=(.*)\n", &status)?;
+
+    match rssi {
+        Some(rssi) => {
+            // parse the string to a signed integer (for math)
+            let rssi_parsed = rssi.parse::<i32>().context(ParseString)?;
+            // perform rssi (dBm) to quality (%) conversion
+            let quality_percent = 2 * (rssi_parsed + 100);
+            // convert signal quality integer to string
+            let quality = quality_percent.to_string();
+
+            Ok(Some(quality))
+        }
+        None => {
+            let iface = iface.to_string();
+            Err(NetworkError::RssiPercent { iface })
+        }
     }
 }
 
@@ -352,17 +374,9 @@ pub fn ssid(iface: &str) -> Result<Option<String>, NetworkError> {
         .open()
         .context(WpaCtrlOpen)?;
     let status = wpa.request("STATUS").context(WpaCtrlRequest)?;
-    // create regex pattern to find ssid in status output
-    let re = Regex::new(r"\nssid=(.*)\n").context(Regex)?;
-    // apply regex pattern to the status output and save matches
-    let caps = re.captures(&status);
-    let ssid = match caps {
-        Some(caps) => {
-            // caps[1] contains inner regex match, ie. the network ssid
-            Some(caps[1].to_string())
-        }
-        None => None,
-    };
+
+    // pass the regex pattern and status output to the regex finder
+    let ssid = utils::regex_finder(r"\nssid=(.*)\n", &status)?;
 
     Ok(ssid)
 }
@@ -420,63 +434,46 @@ pub fn status(iface: &str) -> Result<Option<Status>, NetworkError> {
         .ctrl_path(wpa_path)
         .open()
         .context(WpaCtrlOpen)?;
-    let status = wpa.request("STATUS").context(WpaCtrlRequest)?;
-    // returns an iterator over the lines in status response
-    let mut status_lines = status.lines();
-    if let Some(line) = status_lines.next() {
-        let bssid = line;
-        let freq = status_lines
-            .next()
-            .expect("None value unwrap for freq in get_status");
-        let ssid = status_lines
-            .next()
-            .expect("None value unwrap for ssid in get_status");
-        let id = status_lines
-            .next()
-            .expect("None value unwrap for id in get_status");
-        let mode = status_lines
-            .next()
-            .expect("None value unwrap for mode in get_status");
-        let pairwise_cipher = status_lines
-            .next()
-            .expect("None value unwrap for pairwise_cipher in get_status");
-        let group_cipher = status_lines
-            .next()
-            .expect("None value unwrap for group_cipher in get_status");
-        let key_mgmt = status_lines
-            .next()
-            .expect("None value unwrap for key_mgmt in get_status");
-        let wpa_state = status_lines
-            .next()
-            .expect("None value unwrap for wpa_state in get_status");
-        let ip_address = status_lines
-            .next()
-            .expect("None value unwrap for ip_address in get_status");
-        // skip line containing p2p_device_address
-        status_lines.next();
-        let address = status_lines
-            .next()
-            .expect("None value unwrap for address in get_status");
+    let wpa_status = wpa.request("STATUS").context(WpaCtrlRequest)?;
 
-        // assign values to struct fields, splitting after the `=` sign
-        let iface_status = Status {
-            address: address.to_string().split_off(8),
-            bssid: bssid.to_string().split_off(6),
-            freq: freq.to_string().split_off(5),
-            group_cipher: group_cipher.to_string().split_off(13),
-            id: id.to_string().split_off(3),
-            ip_address: ip_address.to_string().split_off(11),
-            key_mgmt: key_mgmt.to_string().split_off(9),
-            mode: mode.to_string().split_off(5),
-            pairwise_cipher: pairwise_cipher.to_string().split_off(16),
-            ssid: ssid.to_string().split_off(5),
-            wpa_state: wpa_state.to_string().split_off(10),
-        };
+    // pass the regex pattern and status output to the regex finder
+    let state = utils::regex_finder(r"wpa_state=(.*)\n", &wpa_status)?;
+    // regex_finder returns an Option type, unwrap or replace None with ERROR
+    let wpa_state = state.unwrap_or_else(|| "ERROR".to_string());
 
-        Ok(Some(iface_status))
-    } else {
-        Ok(None)
+    // create new Status object (all fields are None type by default)
+    let mut status = Status::new();
+    // match on wpa_state and set Status fields accordingly
+    match wpa_state.as_ref() {
+        "ERROR" => status.wpa_state = Some("ERROR".to_string()),
+        "UNKNOWN" => status.wpa_state = Some("UNKNOWN".to_string()),
+        "INTERFACE_DISABLED" => status.wpa_state = Some("DISABLED".to_string()),
+        "INACTIVE" => status.wpa_state = Some("INACTIVE".to_string()),
+        "DISCONNECTED" => status.wpa_state = Some("DISCONNECTED".to_string()),
+        "SCANNING" => status.wpa_state = Some("SCANNING".to_string()),
+        "ASSOCIATING" => status.wpa_state = Some("ASSOCIATING".to_string()),
+        "ASSOCIATED" => status.wpa_state = Some("ASSOCIATED".to_string()),
+        "AUTHENTICATING" => status.wpa_state = Some("AUTHENTICATING".to_string()),
+        "4WAY_HANDSHAKE" => status.wpa_state = Some("4WAY_HANDSHAKE".to_string()),
+        "GROUP_HANDSHAKE" => status.wpa_state = Some("GROUP_HANDSHAKE".to_string()),
+        // retrieve additional status fields only if wpa_state is COMPLETED
+        "COMPLETED" => {
+            status.address = utils::regex_finder(r"\naddress=(.*)\n", &wpa_status)?;
+            status.bssid = utils::regex_finder(r"\nbssid=(.*)\n", &wpa_status)?;
+            status.freq = utils::regex_finder(r"\nfreq=(.*)\n", &wpa_status)?;
+            status.group_cipher = utils::regex_finder(r"\ngroup_cipher=(.*)\n", &wpa_status)?;
+            status.id = utils::regex_finder(r"\nid=(.*)\n", &wpa_status)?;
+            status.ip_address = utils::regex_finder(r"\nip_address=(.*)\n", &wpa_status)?;
+            status.key_mgmt = utils::regex_finder(r"\nkey_mgmt=(.*)\n", &wpa_status)?;
+            status.mode = utils::regex_finder(r"\nmode=(.*)\n", &wpa_status)?;
+            status.pairwise_cipher = utils::regex_finder(r"\npairwise_cipher=(.*)\n", &wpa_status)?;
+            status.ssid = utils::regex_finder(r"\nssid=(.*)\n", &wpa_status)?;
+            status.wpa_state = utils::regex_finder(r"\nwpa_state=(.*)\n", &wpa_status)?;
+        }
+        _ => (),
     }
+
+    Ok(Some(status))
 }
 
 /// Retrieve network traffic statistics for a given interface.

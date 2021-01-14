@@ -15,6 +15,7 @@
 //!
 mod error;
 pub mod network;
+mod utils;
 
 use std::env;
 use std::result::Result;
