@@ -1,6 +1,6 @@
 # peach-network
 
-[![Build Status](https://travis-ci.com/peachcloud/peach-network.svg?branch=master)](https://travis-ci.com/peachcloud/peach-network) ![Generic badge](https://img.shields.io/badge/version-0.2.7-<COLOR>.svg)
+[![Build Status](https://travis-ci.com/peachcloud/peach-network.svg?branch=master)](https://travis-ci.com/peachcloud/peach-network) ![Generic badge](https://img.shields.io/badge/version-0.2.8-<COLOR>.svg)
 
 Networking microservice module for PeachCloud. Query and configure device interfaces using [JSON-RPC](https://www.jsonrpc.org/specification) over http.
 
@@ -30,8 +30,8 @@ Methods for **modifying state**:
 
 | Method | Parameters | Description |
 | --- | --- | --- |
-| `activate_ap` | | Activate WiFi access point (stop `wpa_supplicant` and start `hostapd` and `dnsmasq`) |
-| `activate_client` | | Activate WiFi client connection (stop `hostapd` and `dnsmasq` and start `wpa_supplicant`) |
+| `activate_ap` | | Activate WiFi access point (start `wpa_supplicant@ap0.service`) |
+| `activate_client` | | Activate WiFi client connection (start `wpa_supplicant@wlan0.service`) |
 | `add` | `ssid`, `pass` | Add WiFi credentials to `wpa_supplicant.conf` |
 | `check_iface` | | Run AP / client-mode configuration script |
 | `connect` | `id`, `iface` | Disable other networks and attempt connection with AP represented by given id |

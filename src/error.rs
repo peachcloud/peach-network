@@ -104,11 +104,11 @@ pub enum NetworkError {
     #[snafu(display("Failed to connect to network {} for interface: {}", id, iface))]
     Connect { id: String, iface: String },
 
-    #[snafu(display("Failed to run activate_ap script: {}", source))]
-    RunApScript { source: io::Error },
+    #[snafu(display("Failed to start ap0 service: {}", source))]
+    StartAp0 { source: io::Error },
 
-    #[snafu(display("Failed to run activate_client script: {}", source))]
-    RunClientScript { source: io::Error },
+    #[snafu(display("Failed to start wlan0 service: {}", source))]
+    StartWlan0 { source: io::Error },
 
     #[snafu(display("JSON serialization failed: {}", source))]
     SerdeSerialize { source: SerdeError },
@@ -296,14 +296,14 @@ impl From<NetworkError> for Error {
                 message: format!("Failed to connect to network {} for {}", id, iface),
                 data: None,
             },
-            NetworkError::RunApScript { source } => Error {
+            NetworkError::StartAp0 { source } => Error {
                 code: ErrorCode::ServerError(-32016),
-                message: format!("Failed to run activate_ap script: {}", source),
+                message: format!("Failed to start ap0 service: {}", source),
                 data: None,
             },
-            NetworkError::RunClientScript { source } => Error {
+            NetworkError::StartWlan0 { source } => Error {
                 code: ErrorCode::ServerError(-32018),
-                message: format!("Failed to run activate_client script: {}", source),
+                message: format!("Failed to start wlan0 service: {}", source),
                 data: None,
             },
             NetworkError::SerdeSerialize { source } => Error {

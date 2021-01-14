@@ -8,10 +8,10 @@
 //! The `wpactrl` crate ([docs](https://docs.rs/wpactrl/0.3.1/wpactrl/))
 //! is used to interact with the `wpasupplicant` process.
 //!
-//! Further networking functionality is provided by executing scripts as
-//! subprocesses, such as `activate_ap` and `activate_client`, as well as making
-//! system calls to retrieve interface state and write access point credentials
-//! to `wpa_supplicant.conf`.
+//! Switching between client mode and access point mode is achieved by making
+//! system calls to systemd (via `systemctl`). Further networking functionality
+//! is provided by making system calls to retrieve interface state and write
+//! access point credentials to `wpa_supplicant-wlan0.conf`.
 //!
 use std::{
     fs::OpenOptions,
@@ -515,57 +515,42 @@ pub fn traffic(iface: &str) -> Result<Option<String>, NetworkError> {
 
 /// Activate wireless access point.
 ///
-/// A command is invoked which executes the `activate_ap` bash script.
-/// The script attempts to stop the `wpasupplicant` process, set the `wlan0`
-/// interface down, start the `hostapd` and `dnsmasq` processes
-/// and set the `ap0` interface up. If the script executes successfully,
-/// an `Ok` `Result` type is returned. In the event of an error, a
-/// `NetworkError` is returned in the `Result`. The `NetworkError` is then
-/// enumerated to a specific error type and an appropriate JSON RPC response is
-/// sent to the caller.
+/// A `systemctl `command is invoked which starts the `ap0` interface service.
+/// If the command executes successfully, an `Ok` `Result` type is returned.
+/// In the event of an error, a `NetworkError` is returned in the `Result`.
+/// The `NetworkError` is then enumerated to a specific error type and an
+/// appropriate JSON RPC response is sent to the caller.
 ///
 pub fn activate_ap() -> Result<(), NetworkError> {
-    // execute the activate_ap bash script
-    let output = Command::new("sudo")
-        .arg("/usr/local/bin/activate_ap")
+    // start the ap0 interface service
+    Command::new("sudo")
+        .arg("/usr/bin/systemctl")
+        .arg("start")
+        .arg("wpa_supplicant@ap0.service")
         .output()
-        .context(RunApScript)?;
-    if output.status.success() {
-        Ok(())
-    } else {
-        let mut err_msg = String::from_utf8(output.stdout).unwrap();
-        let len = err_msg.len();
-        // truncate the error msg to remove the trailing newline character
-        err_msg.truncate(len - 1);
-        Err(NetworkError::ActivateAp { err_msg })
-    }
+        .context(StartAp0)?;
+
+    Ok(())
 }
 
 /// Activate wireless client.
 ///
-/// A command is invoked which executes the `activate_client` bash script.
-/// The script attempts to stop the `hostapd` and `dnsmasq` processes and set
-/// the `wlan0` interface up. If the commands execute successfully, an `Ok`
-/// `Result` type is returned. In the event of an error, a `NetworkError` is
-/// returned in the `Result`. The `NetworkError` is then enumerated to a
-/// specific error type and an appropriate JSON RPC response is sent to the
-/// caller.
+/// A `systemctl` command is invoked which starts the `wlan0` interface service.
+/// If the command executes successfully, an `Ok` `Result` type is returned.
+/// In the event of an error, a `NetworkError` is returned in the `Result`.
+/// The `NetworkError` is then enumerated to a specific error type and an
+/// appropriate JSON RPC response is sent to the caller.
 ///
 pub fn activate_client() -> Result<(), NetworkError> {
-    // execute the activate_client bash script
-    let output = Command::new("sudo")
-        .arg("/usr/local/bin/activate_client")
+    // start the wlan0 interface service
+    Command::new("sudo")
+        .arg("/usr/bin/systemctl")
+        .arg("start")
+        .arg("wpa_supplicant@wlan0.service")
         .output()
-        .context(RunClientScript)?;
-    if output.status.success() {
-        Ok(())
-    } else {
-        let mut err_msg = String::from_utf8(output.stdout).unwrap();
-        let len = err_msg.len();
-        // truncate the error msg to remove the trailing newline character
-        err_msg.truncate(len - 1);
-        Err(NetworkError::ActivateClient { err_msg })
-    }
+        .context(StartWlan0)?;
+
+    Ok(())
 }
 
 /// Add network credentials for a given wireless access point.
