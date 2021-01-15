@@ -560,10 +560,11 @@ pub fn activate_client() -> Result<(), NetworkError> {
 /// * `wifi` - An instance of the `WiFi` `struct` with fields `ssid` and `pass`
 ///
 /// If configuration parameters are successfully generated from the provided
-/// SSID and password and appended to `wpa_supplicant.conf`, an `Ok` `Result`
-/// type is returned. In the event of an error, a `NetworkError` is returned in
-/// the `Result`. The `NetworkError` is then enumerated to a specific error type
-/// and an appropriate JSON RPC response is sent to the caller.
+/// SSID and password and appended to `wpa_supplicant-wlan0.conf`, an `Ok`
+/// `Result` type is returned. In the event of an error, a `NetworkError` is
+/// returned in the `Result`. The `NetworkError` is then enumerated to a
+/// specific error type and an appropriate JSON RPC response is sent to the
+/// caller.
 ///
 pub fn add(wifi: &WiFi) -> Result<(), NetworkError> {
     // generate configuration based on provided ssid & password
@@ -578,12 +579,12 @@ pub fn add(wifi: &WiFi) -> Result<(), NetworkError> {
     let mut wpa_details = "\n".as_bytes().to_vec();
     wpa_details.extend(&*(output.stdout));
 
-    // append wpa_passphrase output to wpa_supplicant.conf if successful
+    // append wpa_passphrase output to wpa_supplicant-wlan0.conf if successful
     if output.status.success() {
         // open file in append mode
         let file = OpenOptions::new()
             .append(true)
-            .open("/etc/wpa_supplicant/wpa_supplicant.conf");
+            .open("/etc/wpa_supplicant/wpa_supplicant-wlan0.conf");
 
         let _file = match file {
             // if file exists & open succeeds, write wifi configuration
