@@ -1,3 +1,0 @@
-#!/bin/sh
-
-deb-systemd-invoke stop peach-network > /dev/null || true
