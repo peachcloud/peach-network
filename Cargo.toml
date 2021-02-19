@@ -16,9 +16,9 @@ extended-description = """\
 peach-network is a microservice to query and configure network interfaces \
 using JSON-RPC over HTTP."""
 maintainer-scripts="debian"
+systemd-units = { unit-name = "peach-network" }
 assets = [
     ["target/release/peach-network", "usr/bin/", "755"],
-    ["debian/peach-network.service", "/lib/systemd/system/peach-network.service", "644"],
     ["README.md", "usr/share/doc/peach-network/README", "644"],
 ]
 
