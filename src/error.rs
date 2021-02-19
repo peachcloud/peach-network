@@ -95,8 +95,11 @@ pub enum NetworkError {
     #[snafu(display("Failed to delete network {} for interface: {}", id, iface))]
     Delete { id: String, iface: String },
 
-    #[snafu(display("Failed to run interface_checker script: {}", source))]
-    CheckIface { source: io::Error },
+    #[snafu(display("Failed to retrieve state of wlan0 service: {}", source))]
+    WlanState { source: io::Error },
+
+    #[snafu(display("Failed to retrieve connection state of wlan0 interface: {}", source))]
+    WlanOperstate { source: io::Error },
 
     #[snafu(display("Failed to save configuration changes to file"))]
     Save,
@@ -281,9 +284,17 @@ impl From<NetworkError> for Error {
                 message: format!("Failed to delete network {} for {}", id, iface),
                 data: None,
             },
-            NetworkError::CheckIface { source } => Error {
+            NetworkError::WlanState { source } => Error {
                 code: ErrorCode::ServerError(-32011),
-                message: format!("Failed to run interface_checker script: {}", source),
+                message: format!("Failed to retrieve state of wlan0 service: {}", source),
+                data: None,
+            },
+            NetworkError::WlanOperstate { source } => Error {
+                code: ErrorCode::ServerError(-32021),
+                message: format!(
+                    "Failed to retrieve connection state of wlan0 interface: {}",
+                    source
+                ),
                 data: None,
             },
             NetworkError::Save => Error {

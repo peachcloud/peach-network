@@ -599,23 +599,36 @@ pub fn add(wifi: &WiFi) -> Result<(), NetworkError> {
     Ok(())
 }
 
-/// Run interface checker script for automatically activating access point or
-/// wireless client.
+/// Deploy the access point if the `wlan0` interface is `up` without an active
+/// connection.
 ///
-/// The `interface_checker.sh` script is executed. The script activates an
-/// access point on the `ap0` interface if the `wlan0` interface is down and
-/// deactivates the access point if the `wlan0` interface is up. If the command
-/// executes successfully, an `Ok` `Result` type is returned. In the event of an
-/// error, a `NetworkError` is returned in the `Result`. The `NetworkError` is
-/// then enumerated to a specific error type and an appropriate JSON RPC
-/// response is sent to the caller.
+/// The status of the `wlan0` service and the state of the `wlan0` interface
+/// are checked. If the service is active but the interface is down (ie. not
+/// currently connected to an access point), then the access point is activated
+/// by calling the `activate_ap()` function.
 ///
 pub fn check_iface() -> Result<(), NetworkError> {
-    Command::new("sudo")
-        .arg("/bin/bash")
-        .arg("/home/glyph/interface_checker.sh")
-        .output()
-        .context(CheckIface)?;
+    // returns 0 if the service is currently active
+    let wlan0_status = Command::new("/usr/bin/systemctl")
+        .arg("is-active")
+        .arg("wpa_supplicant@wlan0.service")
+        .status()
+        .context(WlanState)?;
+
+    // returns the current state of the wlan0 interface
+    let iface_state = state("wlan0")?;
+
+    // returns down if the interface is not currently connected to an ap
+    let wlan0_state = match iface_state {
+        Some(state) => state,
+        None => "error".to_string(),
+    };
+
+    // if wlan0 is active but not connected, start the ap0 service
+    if wlan0_status.success() && wlan0_state == "down" {
+        activate_ap()?
+    }
+
     Ok(())
 }
 

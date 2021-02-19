@@ -880,23 +880,44 @@ mod tests {
         );
     }
 
-    // test to ensure correct CheckIface error response
+    // test to ensure correct WlanState error response
     #[test]
-    fn rpc_checkiface_error() {
+    fn rpc_wlanstate_error() {
         let rpc = {
             let mut io = IoHandler::new();
-            io.add_method("rpc_checkiface_error", |_| {
+            io.add_method("rpc_wlanstate_error", |_| {
                 let source = IoError::new(ErrorKind::PermissionDenied, "oh no!");
-                Err(Error::from(NetworkError::CheckIface { source }))
+                Err(Error::from(NetworkError::WlanState { source }))
             });
             test::Rpc::from(io)
         };
 
         assert_eq!(
-            rpc.request("rpc_checkiface_error", &()),
+            rpc.request("rpc_wlanstate_error", &()),
             r#"{
   "code": -32011,
-  "message": "Failed to run interface_checker script: oh no!"
+  "message": "Failed to retrieve state of wlan0 service: oh no!"
+}"#
+        );
+    }
+
+    // test to ensure correct WlanOperstate error response
+    #[test]
+    fn rpc_wlanoperstate_error() {
+        let rpc = {
+            let mut io = IoHandler::new();
+            io.add_method("rpc_wlanoperstate_error", |_| {
+                let source = IoError::new(ErrorKind::PermissionDenied, "oh no!");
+                Err(Error::from(NetworkError::WlanOperstate { source }))
+            });
+            test::Rpc::from(io)
+        };
+
+        assert_eq!(
+            rpc.request("rpc_wlanoperstate_error", &()),
+            r#"{
+  "code": -32021,
+  "message": "Failed to retrieve connection state of wlan0 interface: oh no!"
 }"#
         );
     }

@@ -1,6 +1,6 @@
 # peach-network
 
-[![Build Status](https://travis-ci.com/peachcloud/peach-network.svg?branch=master)](https://travis-ci.com/peachcloud/peach-network) ![Generic badge](https://img.shields.io/badge/version-0.2.8-<COLOR>.svg)
+[![Build Status](https://travis-ci.com/peachcloud/peach-network.svg?branch=master)](https://travis-ci.com/peachcloud/peach-network) ![Generic badge](https://img.shields.io/badge/version-0.2.9-<COLOR>.svg)
 
 Networking microservice module for PeachCloud. Query and configure device interfaces using [JSON-RPC](https://www.jsonrpc.org/specification) over http.
 
@@ -33,7 +33,7 @@ Methods for **modifying state**:
 | `activate_ap` | | Activate WiFi access point (start `wpa_supplicant@ap0.service`) |
 | `activate_client` | | Activate WiFi client connection (start `wpa_supplicant@wlan0.service`) |
 | `add` | `ssid`, `pass` | Add WiFi credentials to `wpa_supplicant.conf` |
-| `check_iface` | | Run AP / client-mode configuration script |
+| `check_iface` | | Activate WiFi access point if client mode is active without a connection |
 | `connect` | `id`, `iface` | Disable other networks and attempt connection with AP represented by given id |
 | `delete` | `id`, `iface` | Remove WiFi credentials for given network id and interface |
 | `disable` | `id`, `iface` | Disable connection with AP represented by given id |
