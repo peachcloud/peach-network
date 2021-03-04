@@ -32,7 +32,7 @@ Methods for **modifying state**:
 | --- | --- | --- |
 | `activate_ap` | | Activate WiFi access point (start `wpa_supplicant@ap0.service`) |
 | `activate_client` | | Activate WiFi client connection (start `wpa_supplicant@wlan0.service`) |
-| `add` | `ssid`, `pass` | Add WiFi credentials to `wpa_supplicant.conf` |
+| `add` | `ssid`, `pass` | Add WiFi credentials to `wpa_supplicant-wlan0.conf` |
 | `check_iface` | | Activate WiFi access point if client mode is active without a connection |
 | `connect` | `id`, `iface` | Disable other networks and attempt connection with AP represented by given id |
 | `delete` | `id`, `iface` | Remove WiFi credentials for given network id and interface |
@@ -42,7 +42,7 @@ Methods for **modifying state**:
 | `reassociate` | `iface` | Reassociate with current AP for given interface |
 | `reconfigure` | | Force wpa_supplicant to re-read its configuration file |
 | `reconnect` | `iface` | Disconnect and reconnect given interface |
-| `save` | | Save configuration changes to `wpa_supplicant.conf` |
+| `save` | | Save configuration changes to `wpa_supplicant-wlan0.conf` |
 
 ### API Documentation
 
