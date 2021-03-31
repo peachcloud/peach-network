@@ -197,8 +197,7 @@ pub fn run() -> Result<(), BoxError> {
         let w: Result<WiFi, Error> = params.parse();
         match w {
             Ok(w) => {
-                let result = network::add(&w);
-                match result {
+                match network::add(&w) {
                     Ok(_) => Ok(Value::String("success".to_string())),
                     Err(e) =>           Err(Error::from(e))
                 }
