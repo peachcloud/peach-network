@@ -740,7 +740,7 @@ dependencies = [
 
 [[package]]
 name = "peach-network"
-version = "0.2.8"
+version = "0.2.10"
 dependencies = [
  "env_logger",
  "failure",

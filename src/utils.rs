@@ -13,10 +13,6 @@ use crate::error::*;
 pub fn regex_finder(pattern: &str, text: &str) -> Result<Option<String>, NetworkError> {
     let re = Regex::new(pattern).context(Regex)?;
     let caps = re.captures(text);
-    let result = match caps {
-        Some(caps) => Some(caps[1].to_string()),
-        None => None,
-    };
-
+    let result = caps.map(|caps| caps[1].to_string());
     Ok(result)
 }
