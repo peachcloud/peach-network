@@ -175,7 +175,10 @@ impl From<NetworkError> for Error {
             },
             NetworkError::GenWpaPassphraseWarning { ssid, err_msg } => Error {
                 code: ErrorCode::ServerError(-32027),
-                message: format!("Failed to generate wpa passphrase for {}: {}", ssid, err_msg),
+                message: format!(
+                    "Failed to generate wpa passphrase for {}: {}",
+                    ssid, err_msg
+                ),
                 data: None,
             },
             NetworkError::Id { iface, ssid } => Error {

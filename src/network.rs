@@ -595,10 +595,12 @@ pub fn add(wifi: &WiFi) -> Result<(), NetworkError> {
             Err(e) => panic!("Failed to write to file: {}", e),
         };
         Ok(())
-    }
-    else {
+    } else {
         let err_msg = String::from_utf8_lossy(&output.stdout);
-        Err(NetworkError::GenWpaPassphraseWarning{ ssid: wifi.ssid.to_string(), err_msg: err_msg.to_string()})
+        Err(NetworkError::GenWpaPassphraseWarning {
+            ssid: wifi.ssid.to_string(),
+            err_msg: err_msg.to_string(),
+        })
     }
 }
 

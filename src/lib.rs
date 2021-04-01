@@ -196,11 +196,9 @@ pub fn run() -> Result<(), BoxError> {
     io.add_method("add", move |params: Params| {
         let w: Result<WiFi, Error> = params.parse();
         match w {
-            Ok(w) => {
-                match network::add(&w) {
-                    Ok(_) => Ok(Value::String("success".to_string())),
-                    Err(e) =>           Err(Error::from(e))
-                }
+            Ok(w) => match network::add(&w) {
+                Ok(_) => Ok(Value::String("success".to_string())),
+                Err(e) => Err(Error::from(e)),
             },
             Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
         }
