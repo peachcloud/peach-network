@@ -3,7 +3,7 @@ Description=Query and configure network interfaces using JSON-RPC over HTTP.
 
 [Service]
 Type=simple
-User=peach-network
+User=root
 Group=netdev
 Environment="RUST_LOG=error"
 ExecStart=/usr/bin/peach-network
