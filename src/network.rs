@@ -594,9 +594,14 @@ pub fn add(wifi: &WiFi) -> Result<(), NetworkError> {
             //  config file could also be copied from peach/config fs location
             Err(e) => panic!("Failed to write to file: {}", e),
         };
+        Ok(())
+    } else {
+        let err_msg = String::from_utf8_lossy(&output.stdout);
+        Err(NetworkError::GenWpaPassphraseWarning {
+            ssid: wifi.ssid.to_string(),
+            err_msg: err_msg.to_string(),
+        })
     }
-
-    Ok(())
 }
 
 /// Deploy the access point if the `wlan0` interface is `up` without an active

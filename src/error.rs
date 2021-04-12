@@ -31,6 +31,9 @@ pub enum NetworkError {
     #[snafu(display("Failed to generate wpa passphrase for {}: {}", ssid, source))]
     GenWpaPassphrase { ssid: String, source: io::Error },
 
+    #[snafu(display("Failed to generate wpa passphrase for {}: {}", ssid, err_msg))]
+    GenWpaPassphraseWarning { ssid: String, err_msg: String },
+
     #[snafu(display("No ID found for {} on interface: {}", ssid, iface))]
     Id { ssid: String, iface: String },
 
@@ -168,6 +171,14 @@ impl From<NetworkError> for Error {
             NetworkError::GenWpaPassphrase { ssid, source } => Error {
                 code: ErrorCode::ServerError(-32025),
                 message: format!("Failed to generate wpa passphrase for {}: {}", ssid, source),
+                data: None,
+            },
+            NetworkError::GenWpaPassphraseWarning { ssid, err_msg } => Error {
+                code: ErrorCode::ServerError(-32036),
+                message: format!(
+                    "Failed to generate wpa passphrase for {}: {}",
+                    ssid, err_msg
+                ),
                 data: None,
             },
             NetworkError::Id { iface, ssid } => Error {

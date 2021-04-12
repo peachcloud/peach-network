@@ -198,7 +198,7 @@ pub fn run() -> Result<(), BoxError> {
         match w {
             Ok(w) => match network::add(&w) {
                 Ok(_) => Ok(Value::String("success".to_string())),
-                Err(_) => Err(Error::from(NetworkError::Add { ssid: w.ssid })),
+                Err(e) => Err(Error::from(e)),
             },
             Err(e) => Err(Error::from(NetworkError::MissingParams { e })),
         }
