@@ -21,11 +21,14 @@ use std::{
     str,
 };
 
+use crate::error::{
+    GenWpaPassphrase, NetworkError, NoIp, NoState, NoTraffic, ParseString, SerdeSerialize,
+    StartAp0, StartWlan0, WlanState, WpaCtrlOpen, WpaCtrlRequest,
+};
 use probes::network;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 
-use crate::error::*;
 use crate::utils;
 
 /// Network interface name.
